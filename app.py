@@ -271,242 +271,339 @@ renda_atual = st.session_state.renda_mensal
 total_gastos = sum(g.valor for g in gastos_filtrados)
 saldo_restante = renda_atual - total_gastos
 
-# ----------------- PAINEL CENTRAL (SALDO DO MÊS FILTRADO) -----------------
-col1, col2, col3 = st.columns(3)
+# Criando as abas de Navegação Principal
+tab_principal, tab_comparacao = st.tabs(["💰 Controle Financeiro", "📊 Comparação Geral"])
 
-with col1:
-    st.metric(f"Renda Mensal ({mes_filtro})", f"R$ {renda_atual:,.2f}")
+with tab_principal:
+    # ----------------- PAINEL CENTRAL (SALDO DO MÊS FILTRADO) -----------------
+    col1, col2, col3 = st.columns(3)
 
-with col2:
-    st.metric(f"Total de Gastos ({mes_filtro})", f"R$ {total_gastos:,.2f}")
+    with col1:
+        st.metric(f"Renda Mensal ({mes_filtro})", f"R$ {renda_atual:,.2f}")
 
-with col3:
-    if saldo_restante >= 0:
-        st.markdown(f"""
-            <div class="metric-card saldo-positivo">
-                <div class="metric-title">Saldo Restante ({mes_filtro})</div>
-                <div class="metric-value">R$ {saldo_restante:,.2f}</div>
-            </div>
-        """, unsafe_allow_html=True)
-    else:
-        st.markdown(f"""
-            <div class="metric-card saldo-negativo">
-                <div class="metric-title">Saldo Restante ({mes_filtro})</div>
-                <div class="metric-value">R$ {saldo_restante:,.2f}</div>
-            </div>
-        """, unsafe_allow_html=True)
+    with col2:
+        st.metric(f"Total de Gastos ({mes_filtro})", f"R$ {total_gastos:,.2f}")
 
-st.markdown("---")
-
-# ----------------- SEÇÃO: METAS E LIMITE DE GASTOS -----------------
-limite_mensal = st.session_state.limite_gastos
-if limite_mensal > 0:
-    porcentagem_limite = min(total_gastos / limite_mensal, 1.0)
-
-    st.markdown(f"### 🎯 Metas do Mês ({mes_filtro})")
-
-    col_meta1, col_meta2 = st.columns([3, 1])
-    with col_meta1:
-        st.progress(porcentagem_limite)
-    with col_meta2:
-        st.markdown(f"Consumido: **R$ {total_gastos:,.2f}** de **R$ {limite_mensal:,.2f}** ({porcentagem_limite*100:.1f}%)")
-
-    if total_gastos >= limite_mensal:
-        st.error(f"🚨 **Limite de gastos excedido!** Você ultrapassou o seu teto planejado de R$ {limite_mensal:,.2f}.")
-    elif total_gastos >= limite_mensal * 0.8:
-        st.warning(f"⚠️ **Cuidado!** Você está quase atingindo seu limite (mais de 80% do teto de R$ {limite_mensal:,.2f} consumido).")
-    else:
-        st.success("✅ Seu nível de gastos está dentro da meta estipulada para o mês.")
+    with col3:
+        if saldo_restante >= 0:
+            st.markdown(f"""
+                <div class="metric-card saldo-positivo">
+                    <div class="metric-title">Saldo Restante ({mes_filtro})</div>
+                    <div class="metric-value">R$ {saldo_restante:,.2f}</div>
+                </div>
+            """, unsafe_allow_html=True)
+        else:
+            st.markdown(f"""
+                <div class="metric-card saldo-negativo">
+                    <div class="metric-title">Saldo Restante ({mes_filtro})</div>
+                    <div class="metric-value">R$ {saldo_restante:,.2f}</div>
+                </div>
+            """, unsafe_allow_html=True)
 
     st.markdown("---")
 
-# ----------------- CORPO PRINCIPAL: ADICIONAR E LISTAR -----------------
-col_form, col_list = st.columns([1, 2])
+    # ----------------- SEÇÃO: METAS E LIMITE DE GASTOS -----------------
+    limite_mensal = st.session_state.limite_gastos
+    if limite_mensal > 0:
+        porcentagem_limite = min(total_gastos / limite_mensal, 1.0)
 
-with col_form:
-    st.markdown("### 📝 Adicionar Novo Gasto")
-    
-    # Estados locais de valor para limpar após adicionar gasto
-    if "val_descricao" not in st.session_state:
-        st.session_state.val_descricao = ""
-    if "val_valor" not in st.session_state:
-        st.session_state.val_valor = 0.0
+        st.markdown(f"### 🎯 Metas do Mês ({mes_filtro})")
 
-    descricao = st.text_input("Descrição do Gasto", value=st.session_state.val_descricao, placeholder="Ex: Mercado Municipal, Gasolina, Uber")
-    valor = st.number_input("Valor (R$)", min_value=0.0, value=st.session_state.val_valor, step=5.0, format="%.2f")
-    
-    # Monta as opções do dropdown com a opção especial no final
-    opcoes_dropdown_cat = st.session_state.categorias + ["➕ Criar Nova Categoria..."]
-    
-    if "selected_categoria" not in st.session_state:
-        st.session_state.selected_categoria = st.session_state.categorias[0]
-        
-    try:
-        default_idx = opcoes_dropdown_cat.index(st.session_state.selected_categoria)
-    except ValueError:
-        default_idx = 0
+        col_meta1, col_meta2 = st.columns([3, 1])
+        with col_meta1:
+            st.progress(porcentagem_limite)
+        with col_meta2:
+            st.markdown(f"Consumido: **R$ {total_gastos:,.2f}** de **R$ {limite_mensal:,.2f}** ({porcentagem_limite*100:.1f}%)")
 
-    categoria_selecionada = st.selectbox(
-        "Categoria",
-        options=opcoes_dropdown_cat,
-        index=default_idx
-    )
-
-    # Condicional reativa para criar nova categoria
-    if categoria_selecionada == "➕ Criar Nova Categoria...":
-        nova_categoria_input = st.text_input("Digite o nome da nova categoria:", placeholder="Ex: Educação, Presentes").strip()
-        if st.button("Salvar Categoria", use_container_width=True):
-            if nova_categoria_input:
-                cat_normalizada = nova_categoria_input.capitalize()
-                if cat_normalizada not in st.session_state.categorias:
-                    st.session_state.categorias.append(cat_normalizada)
-                    st.session_state.selected_categoria = cat_normalizada
-                    try:
-                        with open(ARQUIVO_CONFIG, "w", encoding="utf-8") as f:
-                            json.dump({
-                                "renda_mensal": st.session_state.renda_mensal,
-                                "limite_gastos": st.session_state.limite_gastos,
-                                "categorias": st.session_state.categorias
-                            }, f)
-                        st.success(f"Categoria '{cat_normalizada}' criada e selecionada!")
-                        st.rerun()
-                    except Exception as e:
-                        st.error(f"Erro ao salvar nova categoria: {e}")
-                else:
-                    st.warning("Esta categoria já existe!")
-            else:
-                st.error("Por favor, digite um nome válido.")
-    else:
-        st.session_state.selected_categoria = categoria_selecionada
-
-    data_gasto = st.date_input("Data do Gasto", value=date.today())
-
-    if st.button("Adicionar Gasto ➕", use_container_width=True):
-        if not descricao.strip():
-            st.error("Por favor, preencha a descrição do gasto.")
-        elif valor <= 0:
-            st.error("O valor do gasto deve ser maior que zero.")
-        elif st.session_state.selected_categoria == "➕ Criar Nova Categoria...":
-            st.error("Por favor, crie e salve a nova categoria primeiro ou escolha uma existente.")
+        if total_gastos >= limite_mensal:
+            st.error(f"🚨 **Limite de gastos excedido!** Você ultrapassou o seu teto planejado de R$ {limite_mensal:,.2f}.")
+        elif total_gastos >= limite_mensal * 0.8:
+            st.warning(f"⚠️ **Cuidado!** Você está quase atingindo seu limite (mais de 80% do teto de R$ {limite_mensal:,.2f} consumido).")
         else:
-            try:
-                # Adiciona e persiste os dados
-                st.session_state.gerenciador.adicionar_gasto(
-                    descricao=descricao,
-                    valor=valor,
-                    categoria=st.session_state.selected_categoria,
-                    data=data_gasto
-                )
-                st.session_state.gerenciador.salvar_dados(ARQUIVO_DADOS)
-                st.success("Gasto adicionado e salvo com sucesso!")
-                
-                # Reseta os campos
-                st.session_state.val_descricao = ""
-                st.session_state.val_valor = 0.0
-                st.rerun()
-            except Exception as e:
-                st.error(f"Erro ao adicionar gasto: {e}")
-
-with col_list:
-    st.markdown(f"### 📊 Histórico de Gastos ({mes_filtro})")
-
-    if len(gastos_filtrados) == 0:
-        st.info(f"Nenhum gasto cadastrado para o mês {mes_filtro}.")
-    else:
-        dados_tabela = []
-        for g in reversed(gastos_filtrados):
-            dados_tabela.append({
-                "Descrição": g.descricao,
-                "Valor (R$)": f"R$ {g.valor:.2f}",
-                "Categoria": g.categoria,
-                "Data": g.data.strftime("%d/%m/%Y")
-            })
-
-        st.dataframe(dados_tabela, use_container_width=True)
-
-        # Botão de exportação
-        df_export = pd.DataFrame([
-            {
-                "ID": g.id,
-                "Descrição": g.descricao,
-                "Valor (R$)": g.valor,
-                "Categoria": g.categoria,
-                "Data": g.data.strftime("%Y-%m-%d")
-            }
-            for g in gastos_filtrados
-        ])
-        csv_data = df_export.to_csv(index=False).encode("utf-8")
-        
-        st.download_button(
-            label="📥 Exportar Gastos Deste Mês (CSV)",
-            data=csv_data,
-            file_name=f"gastos_{mes_filtro.replace('/', '_')}.csv",
-            mime="text/csv",
-            use_container_width=True
-        )
+            st.success("✅ Seu nível de gastos está dentro da meta estipulada para o mês.")
 
         st.markdown("---")
 
-        # Exclusão de Gastos
-        st.markdown("### 🗑️ Excluir Gasto")
-        opcoes_exclusao = {
-            gasto.id: f"{gasto.descricao} (R$ {gasto.valor:.2f} - {gasto.data.strftime('%d/%m/%Y')})"
-            for gasto in gastos_filtrados
-        }
+    # ----------------- CORPO PRINCIPAL: ADICIONAR E LISTAR -----------------
+    col_form, col_list = st.columns([1, 2])
+
+    with col_form:
+        st.markdown("### 📝 Adicionar Novo Gasto")
         
-        gasto_selecionado_id = st.selectbox(
-            "Selecione um gasto para excluir:",
-            options=list(opcoes_exclusao.keys()),
-            format_func=lambda x: opcoes_exclusao[x],
-            key="gasto_excluir_select"
+        # Estados locais de valor para limpar após adicionar gasto
+        if "val_descricao" not in st.session_state:
+            st.session_state.val_descricao = ""
+        if "val_valor" not in st.session_state:
+            st.session_state.val_valor = 0.0
+
+        descricao = st.text_input("Descrição do Gasto", value=st.session_state.val_descricao, placeholder="Ex: Mercado Municipal, Gasolina, Uber")
+        valor = st.number_input("Valor (R$)", min_value=0.0, value=st.session_state.val_valor, step=5.0, format="%.2f")
+        
+        # Monta as opções do dropdown com a opção especial no final
+        opcoes_dropdown_cat = st.session_state.categorias + ["➕ Criar Nova Categoria..."]
+        
+        if "selected_categoria" not in st.session_state:
+            st.session_state.selected_categoria = st.session_state.categorias[0]
+            
+        try:
+            default_idx = opcoes_dropdown_cat.index(st.session_state.selected_categoria)
+        except ValueError:
+            default_idx = 0
+
+        categoria_selecionada = st.selectbox(
+            "Categoria",
+            options=opcoes_dropdown_cat,
+            index=default_idx
         )
-        
-        if st.button("Excluir Gasto 🗑️", use_container_width=True):
-            if gasto_selecionado_id:
-                if st.session_state.gerenciador.remover_gasto(gasto_selecionado_id):
-                    try:
-                        st.session_state.gerenciador.salvar_dados(ARQUIVO_DADOS)
-                        st.success("Gasto excluído com sucesso!")
-                        st.rerun()
-                    except Exception as e:
-                        st.error(f"Erro ao salvar dados após exclusão: {e}")
+
+        # Condicional reativa para criar nova categoria
+        if categoria_selecionada == "➕ Criar Nova Categoria...":
+            nova_categoria_input = st.text_input("Digite o nome da nova categoria:", placeholder="Ex: Educação, Presentes").strip()
+            if st.button("Salvar Categoria", use_container_width=True):
+                if nova_categoria_input:
+                    cat_normalizada = nova_categoria_input.capitalize()
+                    if cat_normalizada not in st.session_state.categorias:
+                        st.session_state.categorias.append(cat_normalizada)
+                        st.session_state.selected_categoria = cat_normalizada
+                        try:
+                            with open(ARQUIVO_CONFIG, "w", encoding="utf-8") as f:
+                                json.dump({
+                                    "renda_mensal": st.session_state.renda_mensal,
+                                    "limite_gastos": st.session_state.limite_gastos,
+                                    "categorias": st.session_state.categorias
+                                }, f)
+                            st.success(f"Categoria '{cat_normalizada}' criada e selecionada!")
+                            st.rerun()
+                        except Exception as e:
+                            st.error(f"Erro ao salvar nova categoria: {e}")
+                    else:
+                        st.warning("Esta categoria já existe!")
                 else:
-                    st.error("Erro interno ao tentar remover o gasto.")
+                    st.error("Por favor, digite um nome válido.")
+        else:
+            st.session_state.selected_categoria = categoria_selecionada
 
-        st.markdown("---")
+        data_gasto = st.date_input("Data do Gasto", value=date.today())
 
-        # Gráficos por Categoria
-        st.markdown("#### Distribuição de Gastos por Categoria")
-        resumo_categorias = {}
-        for g in gastos_filtrados:
-            cat_normalizada = g.categoria.strip().capitalize()
-            resumo_categorias[cat_normalizada] = resumo_categorias.get(cat_normalizada, 0.0) + g.valor
+        if st.button("Adicionar Gasto ➕", use_container_width=True):
+            if not descricao.strip():
+                st.error("Por favor, preencha a descrição do gasto.")
+            elif valor <= 0:
+                st.error("O valor do gasto deve ser maior que zero.")
+            elif st.session_state.selected_categoria == "➕ Criar Nova Categoria...":
+                st.error("Por favor, crie e salve a nova categoria primeiro ou escolha uma existente.")
+            else:
+                try:
+                    # Adiciona e persiste os dados
+                    st.session_state.gerenciador.adicionar_gasto(
+                        descricao=descricao,
+                        valor=valor,
+                        categoria=st.session_state.selected_categoria,
+                        data=data_gasto
+                    )
+                    st.session_state.gerenciador.salvar_dados(ARQUIVO_DADOS)
+                    st.success("Gasto adicionado e salvo com sucesso!")
+                    
+                    # Reseta os campos
+                    st.session_state.val_descricao = ""
+                    st.session_state.val_valor = 0.0
+                    st.rerun()
+                except Exception as e:
+                    st.error(f"Erro ao adicionar gasto: {e}")
 
-        if resumo_categorias:
-            col_graf1, col_graf2 = st.columns(2)
+    with col_list:
+        st.markdown(f"### 📊 Histórico de Gastos ({mes_filtro})")
 
-            df_categorias = pd.DataFrame([
-                {"Categoria": cat, "Valor (R$)": total}
-                for cat, total in resumo_categorias.items()
+        if len(gastos_filtrados) == 0:
+            st.info(f"Nenhum gasto cadastrado para o mês {mes_filtro}.")
+        else:
+            dados_tabela = []
+            for g in reversed(gastos_filtrados):
+                dados_tabela.append({
+                    "Descrição": g.descricao,
+                    "Valor (R$)": f"R$ {g.valor:.2f}",
+                    "Categoria": g.categoria,
+                    "Data": g.data.strftime("%d/%m/%Y")
+                })
+
+            st.dataframe(dados_tabela, use_container_width=True)
+
+            # Botão de exportação
+            df_export = pd.DataFrame([
+                {
+                    "ID": g.id,
+                    "Descrição": g.descricao,
+                    "Valor (R$)": g.valor,
+                    "Categoria": g.categoria,
+                    "Data": g.data.strftime("%Y-%m-%d")
+                }
+                for g in gastos_filtrados
             ])
+            csv_data = df_export.to_csv(index=False).encode("utf-8")
+            
+            st.download_button(
+                label="📥 Exportar Gastos Deste Mês (CSV)",
+                data=csv_data,
+                file_name=f"gastos_{mes_filtro.replace('/', '_')}.csv",
+                mime="text/csv",
+                use_container_width=True
+            )
 
-            total_geral = df_categorias["Valor (R$)"].sum()
-            df_categorias["Porcentagem (%)"] = (df_categorias["Valor (R$)"] / total_geral * 100).round(1)
+            st.markdown("---")
 
-            with col_graf1:
-                st.markdown("<p style='text-align: center; font-size: 0.95rem; opacity: 0.9;'>Total Gasto por Categoria (R$)</p>", unsafe_allow_html=True)
-                st.bar_chart(df_categorias, x="Categoria", y="Valor (R$)", color="Categoria", use_container_width=True)
+            # Exclusão de Gastos
+            st.markdown("### 🗑️ Excluir Gasto")
+            opcoes_exclusao = {
+                gasto.id: f"{gasto.descricao} (R$ {gasto.valor:.2f} - {gasto.data.strftime('%d/%m/%Y')})"
+                for gasto in gastos_filtrados
+            }
+            
+            gasto_selecionado_id = st.selectbox(
+                "Selecione um gasto para excluir:",
+                options=list(opcoes_exclusao.keys()),
+                format_func=lambda x: opcoes_exclusao[x],
+                key="gasto_excluir_select"
+            )
+            
+            if st.button("Excluir Gasto 🗑️", use_container_width=True):
+                if gasto_selecionado_id:
+                    if st.session_state.gerenciador.remover_gasto(gasto_selecionado_id):
+                        try:
+                            st.session_state.gerenciador.salvar_dados(ARQUIVO_DADOS)
+                            st.success("Gasto excluído com sucesso!")
+                            st.rerun()
+                        except Exception as e:
+                            st.error(f"Erro ao salvar dados após exclusão: {e}")
+                    else:
+                        st.error("Erro interno ao tentar remover o gasto.")
 
-            with col_graf2:
-                st.markdown("<p style='text-align: center; font-size: 0.95rem; opacity: 0.9;'>Proporção do Orçamento (%)</p>", unsafe_allow_html=True)
-                grafico_rosca = alt.Chart(df_categorias).mark_arc(innerRadius=60).encode(
-                    theta=alt.Theta(field="Valor (R$)", type="quantitative"),
-                    color=alt.Color(
-                        field="Categoria",
-                        type="nominal",
-                        scale=alt.Scale(scheme="tealblues")
-                    ),
-                    tooltip=["Categoria", "Valor (R$)", "Porcentagem (%)"]
-                ).properties(height=260).interactive()
+            st.markdown("---")
 
-                st.altair_chart(grafico_rosca, use_container_width=True)
+            # Gráficos por Categoria
+            st.markdown("#### Distribuição de Gastos por Categoria")
+            resumo_categorias = {}
+            for g in gastos_filtrados:
+                cat_normalizada = g.categoria.strip().capitalize()
+                resumo_categorias[cat_normalizada] = resumo_categorias.get(cat_normalizada, 0.0) + g.valor
+
+            if resumo_categorias:
+                col_graf1, col_graf2 = st.columns(2)
+
+                df_categorias = pd.DataFrame([
+                    {"Categoria": cat, "Valor (R$)": total}
+                    for cat, total in resumo_categorias.items()
+                ])
+
+                total_geral = df_categorias["Valor (R$)"].sum()
+                df_categorias["Porcentagem (%)"] = (df_categorias["Valor (R$)"] / total_geral * 100).round(1)
+
+                with col_graf1:
+                    st.markdown("<p style='text-align: center; font-size: 0.95rem; opacity: 0.9;'>Total Gasto por Categoria (R$)</p>", unsafe_allow_html=True)
+                    st.bar_chart(df_categorias, x="Categoria", y="Valor (R$)", color="Categoria", use_container_width=True)
+
+                with col_graf2:
+                    st.markdown("<p style='text-align: center; font-size: 0.95rem; opacity: 0.9;'>Proporção do Orçamento (%)</p>", unsafe_allow_html=True)
+                    grafico_rosca = alt.Chart(df_categorias).mark_arc(innerRadius=60).encode(
+                        theta=alt.Theta(field="Valor (R$)", type="quantitative"),
+                        color=alt.Color(
+                            field="Categoria",
+                            type="nominal",
+                            scale=alt.Scale(scheme="tealblues")
+                        ),
+                        tooltip=["Categoria", "Valor (R$)", "Porcentagem (%)"]
+                    ).properties(height=260).interactive()
+
+                    st.altair_chart(grafico_rosca, use_container_width=True)
+
+# Nomes dos meses para a Comparação Geral
+NOME_MESES = {
+    1: "Janeiro", 2: "Fevereiro", 3: "Março", 4: "Abril",
+    5: "Maio", 6: "Junho", 7: "Julho", 8: "Agosto",
+    9: "Setembro", 10: "Outubro", 11: "Novembro", 12: "Dezembro"
+}
+
+NOME_MESES_CURTO = {
+    1: "Jan", 2: "Fev", 3: "Mar", 4: "Abr",
+    5: "Mai", 6: "Jun", 7: "Jul", 8: "Ago",
+    9: "Set", 10: "Out", 11: "Nov", 12: "Dez"
+}
+
+with tab_comparacao:
+    st.markdown("## 📊 Comparação Geral")
+    st.markdown("Analise o histórico consolidado de gastos organizados por ano e mês, livre de filtros mensais da barra lateral.")
+    
+    # 1. Filtro de Ano
+    todos_gastos = st.session_state.gerenciador.gastos
+    anos_disponiveis = sorted(list(set(g.data.year for g in todos_gastos)))
+    ano_atual = date.today().year
+    if ano_atual not in anos_disponiveis:
+        anos_disponiveis.append(ano_atual)
+    anos_disponiveis = sorted(anos_disponiveis)
+    
+    try:
+        default_ano_idx = anos_disponiveis.index(ano_atual)
+    except ValueError:
+        default_ano_idx = len(anos_disponiveis) - 1
+        
+    ano_selecionado = st.selectbox(
+        "Selecione o Ano de Análise:",
+        options=anos_disponiveis,
+        index=default_ano_idx
+    )
+    
+    # 2. Filtragem e Agrupamento
+    gastos_ano = [g for g in todos_gastos if g.data.year == ano_selecionado]
+    
+    # Inicializa todos os 12 meses com 0.0 para garantir que todos apareçam
+    resumo_mensal_ano = {m: 0.0 for m in range(1, 13)}
+    for g in gastos_ano:
+        resumo_mensal_ano[g.data.month] += g.valor
+        
+    total_acumulado_ano = sum(resumo_mensal_ano.values())
+    
+    # 3. Métricas de Destaque
+    st.markdown("---")
+    
+    # Estilizando o cartão de acumulado
+    st.markdown(f"""
+        <div class="metric-card" style="background-color: #0d9488; border-color: #0f766e; color: white;">
+            <div class="metric-title" style="font-size: 1rem; font-weight: 600;">Total Acumulado Gasto em {ano_selecionado}</div>
+            <div class="metric-value" style="font-size: 2.5rem; font-weight: 800;">R$ {total_acumulado_ano:,.2f}</div>
+        </div>
+        <br>
+    """, unsafe_allow_html=True)
+    
+    # 4. Tabela Elegante de Resumo e Gráfico
+    col_tabela, col_grafico = st.columns([1, 1])
+    
+    with col_tabela:
+        df_resumo_ano = pd.DataFrame([
+            {
+                "Mês": NOME_MESES[m],
+                "Total Gasto (R$)": f"R$ {resumo_mensal_ano[m]:,.2f}"
+            }
+            for m in range(1, 13)
+        ])
+        st.markdown("#### Tabela Mensal")
+        st.dataframe(df_resumo_ano, use_container_width=True, hide_index=True)
+        
+    with col_grafico:
+        df_grafico_ano = pd.DataFrame([
+            {
+                "Mês": NOME_MESES_CURTO[m],
+                "Valor (R$)": resumo_mensal_ano[m]
+            }
+            for m in range(1, 13)
+        ])
+        st.markdown("#### Histórico de Gastos por Mês (R$)")
+        chart_bar_ano = alt.Chart(df_grafico_ano).mark_bar(
+            color="#0d9488",
+            cornerRadiusTopLeft=5,
+            cornerRadiusTopRight=5
+        ).encode(
+            x=alt.X("Mês:N", sort=list(NOME_MESES_CURTO.values()), title="Mês"),
+            y=alt.Y("Valor (R$):Q", title="Total Gasto (R$)"),
+            tooltip=["Mês", "Valor (R$)"]
+        ).properties(height=300).interactive()
+        
+        st.altair_chart(chart_bar_ano, use_container_width=True)
