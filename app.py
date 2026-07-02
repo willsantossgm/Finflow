@@ -171,7 +171,7 @@ if not st.session_state.authenticated:
 
 # ----------------- INICIALIZAÇÃO DO GERENCIADOR AUTENTICADO -----------------
 # Garantimos que o GerenciadorFinancas seja instanciado com o ID do Clerk atual
-if "gerenciador" not in st.session_state or getattr(st.session_state.gerenciador, "user_id", None) != st.session_state.clerk_user_id:
+if "gerenciador" not in st.session_state or getattr(st.session_state.gerenciador, "user_id", None) != st.session_state.clerk_user_id or not hasattr(st.session_state.gerenciador, "agrupar_por_categoria_ano"):
     st.session_state.gerenciador = GerenciadorFinancas(user_id=st.session_state.clerk_user_id)
     # Tenta carregar dados do Supabase
     st.session_state.gerenciador.carregar_dados(ARQUIVO_DADOS)
