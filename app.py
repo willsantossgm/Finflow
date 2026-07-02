@@ -487,31 +487,30 @@ with tab_principal:
                 resumo_categorias[cat_normalizada] = resumo_categorias.get(cat_normalizada, 0.0) + g.valor
 
             if resumo_categorias:
-                col_graf1, col_graf2 = st.columns(2)
-
                 df_categorias = pd.DataFrame([
-                    {"Categoria": cat, "Valor (R$)": total}
+                    {"Categoria": cat, "Valor": total}
                     for cat, total in resumo_categorias.items()
                 ])
 
-                total_geral = df_categorias["Valor (R$)"].sum()
-                df_categorias["Porcentagem (%)"] = (df_categorias["Valor (R$)"] / total_geral * 100).round(1)
+                total_geral = df_categorias["Valor"].sum()
+                df_categorias["Porcentagem"] = (df_categorias["Valor"] / total_geral * 100).round(1)
 
-                with col_graf1:
-                    st.markdown("<p style='text-align: center; font-size: 0.95rem; opacity: 0.9;'>Total Gasto por Categoria (R$)</p>", unsafe_allow_html=True)
-                    st.bar_chart(df_categorias, x="Categoria", y="Valor (R$)", color="Categoria", use_container_width=True)
-
-                with col_graf2:
-                    st.markdown("<p style='text-align: center; font-size: 0.95rem; opacity: 0.9;'>Proporção do Orçamento (%)</p>", unsafe_allow_html=True)
+                col_l, col_c, col_r = st.columns([1, 2, 1])
+                with col_c:
+                    st.markdown("<p style='text-align: center; font-size: 0.95rem; font-weight: 600; opacity: 0.9;'>Proporção do Orçamento (%)</p>", unsafe_allow_html=True)
                     grafico_rosca = alt.Chart(df_categorias).mark_arc(innerRadius=60).encode(
-                        theta=alt.Theta(field="Valor (R$)", type="quantitative"),
+                        theta=alt.Theta(field="Valor", type="quantitative"),
                         color=alt.Color(
                             field="Categoria",
                             type="nominal",
                             scale=alt.Scale(scheme="tealblues")
                         ),
-                        tooltip=["Categoria", "Valor (R$)", "Porcentagem (%)"]
-                    ).properties(height=260).interactive()
+                        tooltip=[
+                            alt.Tooltip("Categoria", title="Categoria"),
+                            alt.Tooltip("Valor", format="$,.2f", title="Valor"),
+                            alt.Tooltip("Porcentagem", format=".1f", title="Proporção (%)")
+                        ]
+                    ).properties(height=280).interactive()
 
                     st.altair_chart(grafico_rosca, use_container_width=True)
 
