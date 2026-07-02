@@ -626,14 +626,25 @@ with tab_comparacao:
         col_tabela_cat, col_grafico_cat = st.columns([1, 1])
         
         with col_tabela_cat:
-            df_resumo_cat_ex = df_cat_ano.copy()
-            df_resumo_cat_ex["Valor (R$)"] = df_resumo_cat_ex["Valor (R$)"].apply(lambda x: f"R$ {x:,.2f}")
-            df_resumo_cat_ex["Porcentagem (%)"] = df_resumo_cat_ex["Porcentagem (%)"].apply(lambda x: f"{x:.1f}%")
-            st.markdown("#### Detalhamento por Categoria")
-            st.dataframe(df_resumo_cat_ex, use_container_width=True, hide_index=True)
+            st.markdown("#### Total Gasto por Categoria (R$)")
+            grafico_pizza_valor = alt.Chart(df_cat_ano).mark_arc(innerRadius=60).encode(
+                theta=alt.Theta(field="Valor (R$)", type="quantitative"),
+                color=alt.Color(
+                    field="Categoria",
+                    type="nominal",
+                    scale=alt.Scale(scheme="greens")
+                ),
+                tooltip=[
+                    alt.Tooltip("Categoria", title="Categoria"),
+                    alt.Tooltip("Valor (R$)", format="$,.2f", title="Valor"),
+                    alt.Tooltip("Porcentagem (%)", format=".1f", title="Proporção")
+                ]
+            ).properties(height=280).interactive()
+            
+            st.altair_chart(grafico_pizza_valor, use_container_width=True)
             
         with col_grafico_cat:
-            st.markdown("#### Gráfico de Proporção Anual (%)")
+            st.markdown("#### Proporção do Orçamento Anual (%)")
             grafico_pizza_ano = alt.Chart(df_cat_ano).mark_arc(innerRadius=60).encode(
                 theta=alt.Theta(field="Valor (R$)", type="quantitative"),
                 color=alt.Color(
@@ -641,7 +652,11 @@ with tab_comparacao:
                     type="nominal",
                     scale=alt.Scale(scheme="tealblues")
                 ),
-                tooltip=["Categoria", "Valor (R$)", "Porcentagem (%)"]
+                tooltip=[
+                    alt.Tooltip("Categoria", title="Categoria"),
+                    alt.Tooltip("Valor (R$)", format="$,.2f", title="Valor"),
+                    alt.Tooltip("Porcentagem (%)", format=".1f", title="Proporção")
+                ]
             ).properties(height=280).interactive()
             
             st.altair_chart(grafico_pizza_ano, use_container_width=True)
