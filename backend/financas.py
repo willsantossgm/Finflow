@@ -220,28 +220,6 @@ class GerenciadorFinancas:
                 filtrados.append(g)
         return filtrados
 
-    def obter_resumo_mensal(self) -> Dict[str, float]:
-        """
-        Retorna o somatório de gastos por mês no formato 'AAAA-MM'.
-        """
-        resumo: Dict[str, float] = {}
-        for g in self.gastos:
-            chave = g.data.strftime("%Y-%m")
-            resumo[chave] = resumo.get(chave, 0.0) + g.valor
-        return dict(sorted(resumo.items()))
-
-    def obter_resumo_semanal(self) -> Dict[str, float]:
-        """
-        Retorna o somatório de gastos por semana no formato 'AAAA-Wsemana'.
-        """
-        resumo: Dict[str, float] = {}
-        for g in self.gastos:
-            ano, semana, _ = g.data.isocalendar()
-            chave = f"{ano}-W{semana:02d}"
-            resumo[chave] = resumo.get(chave, 0.0) + g.valor
-        return dict(sorted(resumo.items()))
-
-
 # Demonstração de uso do módulo
 if __name__ == "__main__":
     print("--- Inicializando Gerenciador de Finanças (Supabase SaaS Mode) ---")
