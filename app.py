@@ -585,7 +585,7 @@ with tab_comparacao:
     df_grafico_ano = pd.DataFrame([
         {
             "Mês": NOME_MESES_CURTO[m],
-            "Valor (R$)": resumo_mensal_ano[m]
+            "Valor": resumo_mensal_ano[m]
         }
         for m in range(1, 13)
     ])
@@ -594,13 +594,13 @@ with tab_comparacao:
     resumo_cat_ano = st.session_state.gerenciador.agrupar_por_categoria_ano(ano_selecionado)
     if resumo_cat_ano:
         df_cat_ano = pd.DataFrame([
-            {"Categoria": cat, "Valor (R$)": total}
+            {"Categoria": cat, "Valor": total}
             for cat, total in resumo_cat_ano.items()
         ])
-        total_ano = df_cat_ano["Valor (R$)"].sum()
-        df_cat_ano["Porcentagem (%)"] = (df_cat_ano["Valor (R$)"] / total_ano * 100).round(1)
+        total_ano = df_cat_ano["Valor"].sum()
+        df_cat_ano["Porcentagem"] = (df_cat_ano["Valor"] / total_ano * 100).round(1)
     else:
-        df_cat_ano = pd.DataFrame(columns=["Categoria", "Valor (R$)", "Porcentagem (%)"])
+        df_cat_ano = pd.DataFrame(columns=["Categoria", "Valor", "Porcentagem"])
 
     # 4. Renderização Condicional da Tela Inteira
     if formato_visual in ["Rosca ⭕", "Barras 📊"]:
@@ -615,8 +615,8 @@ with tab_comparacao:
                 point=alt.OverlayMarkDef(color="#0d9488", size=60)
             ).encode(
                 x=alt.X("Mês:N", sort=list(NOME_MESES_CURTO.values()), title="Mês"),
-                y=alt.Y("Valor (R$):Q", title="Total Gasto (R$)"),
-                tooltip=["Mês", "Valor (R$)"]
+                y=alt.Y("Valor:Q", title="Total Gasto (R$)"),
+                tooltip=["Mês", alt.Tooltip("Valor", format="$,.2f", title="Total")]
             ).properties(height=300).interactive()
         else:
             # Gráfico de Barras
@@ -626,8 +626,8 @@ with tab_comparacao:
                 cornerRadiusTopRight=5
             ).encode(
                 x=alt.X("Mês:N", sort=list(NOME_MESES_CURTO.values()), title="Mês"),
-                y=alt.Y("Valor (R$):Q", title="Total Gasto (R$)"),
-                tooltip=["Mês", "Valor (R$)"]
+                y=alt.Y("Valor:Q", title="Total Gasto (R$)"),
+                tooltip=["Mês", alt.Tooltip("Valor", format="$,.2f", title="Total")]
             ).properties(height=300).interactive()
             
         st.altair_chart(chart_monthly, use_container_width=True)
@@ -642,7 +642,7 @@ with tab_comparacao:
                 with col_c:
                     st.markdown("<p style='text-align: center; font-size: 1.1rem; font-weight: 600;'>Proporção do Orçamento Anual (%)</p>", unsafe_allow_html=True)
                     grafico_pizza_ano = alt.Chart(df_cat_ano).mark_arc(innerRadius=60).encode(
-                        theta=alt.Theta(field="Valor (R$)", type="quantitative"),
+                        theta=alt.Theta(field="Valor", type="quantitative"),
                         color=alt.Color(
                             field="Categoria",
                             type="nominal",
@@ -650,8 +650,8 @@ with tab_comparacao:
                         ),
                         tooltip=[
                             alt.Tooltip("Categoria", title="Categoria"),
-                            alt.Tooltip("Valor (R$)", format="$,.2f", title="Valor"),
-                            alt.Tooltip("Porcentagem (%)", format=".1f", title="Proporção")
+                            alt.Tooltip("Valor", format="$,.2f", title="Valor"),
+                            alt.Tooltip("Porcentagem", format=".1f", title="Proporção (%)")
                         ]
                     ).properties(height=320).interactive()
                     st.altair_chart(grafico_pizza_ano, use_container_width=True)
@@ -660,12 +660,12 @@ with tab_comparacao:
                     color="#0d9488",
                     cornerRadiusEnd=5
                 ).encode(
-                    x=alt.X("Valor (R$):Q", title="Total Gasto (R$)"),
+                    x=alt.X("Valor:Q", title="Total Gasto (R$)"),
                     y=alt.Y("Categoria:N", sort="-x", title="Categoria"),
                     tooltip=[
                         alt.Tooltip("Categoria", title="Categoria"),
-                        alt.Tooltip("Valor (R$)", format="$,.2f", title="Valor"),
-                        alt.Tooltip("Porcentagem (%)", format=".1f", title="Proporção")
+                        alt.Tooltip("Valor", format="$,.2f", title="Valor"),
+                        alt.Tooltip("Porcentagem", format=".1f", title="Proporção (%)")
                     ]
                 ).properties(height=300).interactive()
                 st.altair_chart(chart_bar_cat, use_container_width=True)
@@ -690,9 +690,10 @@ with tab_comparacao:
         with col_tab2:
             st.markdown("### 🏷️ Detalhamento por Categoria Anual")
             if not df_cat_ano.empty:
-                df_resumo_cat_ex = df_cat_ano.copy()
-                df_resumo_cat_ex["Valor (R$)"] = df_resumo_cat_ex["Valor (R$)"].apply(lambda x: f"R$ {x:,.2f}")
-                df_resumo_cat_ex["Porcentagem (%)"] = df_resumo_cat_ex["Porcentagem (%)"].apply(lambda x: f"{x:.1f}%")
+                df_resumo_cat_ex = pd.DataFrame()
+                df_resumo_cat_ex["Categoria"] = df_cat_ano["Categoria"]
+                df_resumo_cat_ex["Valor (R$)"] = df_cat_ano["Valor"].apply(lambda x: f"R$ {x:,.2f}")
+                df_resumo_cat_ex["Porcentagem (%)"] = df_cat_ano["Porcentagem"].apply(lambda x: f"{x:.1f}%")
                 st.dataframe(df_resumo_cat_ex, use_container_width=True, hide_index=True)
             else:
                 st.info("Nenhum gasto cadastrado no ano selecionado para analisar categorias.")
