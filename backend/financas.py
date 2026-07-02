@@ -143,6 +143,56 @@ class GerenciadorFinancas:
         self.gastos = [gasto for gasto in self.gastos if gasto.id != id_gasto]
         return len(self.gastos) < original_len
 
+    def obter_meses_disponiveis(self) -> List[str]:
+        """
+        Retorna uma lista ordenada de strings 'MM/AAAA' correspondentes aos meses
+        em que existem gastos cadastrados, garantindo que o mês atual esteja incluso.
+        """
+        meses = set()
+        hoje = date.today()
+        meses.add(hoje.strftime("%m/%Y"))
+
+        for g in self.gastos:
+            meses.add(g.data.strftime("%m/%Y"))
+
+        # Ordena cronologicamente
+        def parse_date(m_ano):
+            m, a = map(int, m_ano.split("/"))
+            return (a, m)
+
+        return sorted(list(meses), key=parse_date)
+
+    def filtrar_por_mes_ano(self, mes_ano_str: str) -> List[Gasto]:
+        """
+        Retorna uma lista de gastos filtrada pela string 'MM/AAAA'.
+        """
+        filtrados = []
+        for g in self.gastos:
+            if g.data.strftime("%m/%Y") == mes_ano_str:
+                filtrados.append(g)
+        return filtrados
+
+    def obter_resumo_mensal(self) -> Dict[str, float]:
+        """
+        Retorna o somatório de gastos por mês no formato 'AAAA-MM'.
+        """
+        resumo: Dict[str, float] = {}
+        for g in self.gastos:
+            chave = g.data.strftime("%Y-%m")
+            resumo[chave] = resumo.get(chave, 0.0) + g.valor
+        return dict(sorted(resumo.items()))
+
+    def obter_resumo_semanal(self) -> Dict[str, float]:
+        """
+        Retorna o somatório de gastos por semana no formato 'AAAA-Wsemana'.
+        """
+        resumo: Dict[str, float] = {}
+        for g in self.gastos:
+            ano, semana, _ = g.data.isocalendar()
+            chave = f"{ano}-W{semana:02d}"
+            resumo[chave] = resumo.get(chave, 0.0) + g.valor
+        return dict(sorted(resumo.items()))
+
 
 # Demonstração de uso do módulo (executada quando o arquivo roda diretamente)
 if __name__ == "__main__":
