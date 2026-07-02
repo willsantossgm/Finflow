@@ -555,7 +555,7 @@ with tab_comparacao:
     with col_formato:
         formato_visual = st.radio(
             "📊 Selecione o Formato de Visualização:",
-            options=["Rosca ⭕", "Barras 📊", "Tabela 📋"],
+            options=["Rosca ⭕", "Tabela 📋"],
             horizontal=True
         )
     
@@ -603,33 +603,19 @@ with tab_comparacao:
         df_cat_ano = pd.DataFrame(columns=["Categoria", "Valor", "Porcentagem"])
 
     # 4. Renderização Condicional da Tela Inteira
-    if formato_visual in ["Rosca ⭕", "Barras 📊"]:
+    if formato_visual == "Rosca ⭕":
         # MODO VISUAL (Somente gráficos)
         
         # Linha de Cima: Histórico Mensal
         st.markdown("### 📈 Histórico de Gastos por Mês (R$)")
-        if formato_visual == "Rosca ⭕":
-            # Gráfico de Linhas elegante que combina com o visual circular
-            chart_monthly = alt.Chart(df_grafico_ano).mark_line(
-                color="#0d9488",
-                point=alt.OverlayMarkDef(color="#0d9488", size=60)
-            ).encode(
-                x=alt.X("Mês:N", sort=list(NOME_MESES_CURTO.values()), title="Mês"),
-                y=alt.Y("Valor:Q", title="Total Gasto (R$)"),
-                tooltip=["Mês", alt.Tooltip("Valor", format="$,.2f", title="Total")]
-            ).properties(height=300).interactive()
-        else:
-            # Gráfico de Barras
-            chart_monthly = alt.Chart(df_grafico_ano).mark_bar(
-                color="#0d9488",
-                cornerRadiusTopLeft=5,
-                cornerRadiusTopRight=5
-            ).encode(
-                x=alt.X("Mês:N", sort=list(NOME_MESES_CURTO.values()), title="Mês"),
-                y=alt.Y("Valor:Q", title="Total Gasto (R$)"),
-                tooltip=["Mês", alt.Tooltip("Valor", format="$,.2f", title="Total")]
-            ).properties(height=300).interactive()
-            
+        chart_monthly = alt.Chart(df_grafico_ano).mark_line(
+            color="#0d9488",
+            point=alt.OverlayMarkDef(color="#0d9488", size=60)
+        ).encode(
+            x=alt.X("Mês:N", sort=list(NOME_MESES_CURTO.values()), title="Mês"),
+            y=alt.Y("Valor:Q", title="Total Gasto (R$)"),
+            tooltip=["Mês", alt.Tooltip("Valor", format="$,.2f", title="Total")]
+        ).properties(height=300).interactive()
         st.altair_chart(chart_monthly, use_container_width=True)
         
         st.markdown("---")
@@ -637,38 +623,23 @@ with tab_comparacao:
         # Linha de Baixo: Distribuição por Categoria
         st.markdown("### 🏷️ Distribuição de Gastos por Categoria Anual")
         if not df_cat_ano.empty:
-            if formato_visual == "Rosca ⭕":
-                col_l, col_c, col_r = st.columns([1, 2, 1])
-                with col_c:
-                    st.markdown("<p style='text-align: center; font-size: 1.1rem; font-weight: 600;'>Proporção do Orçamento Anual (%)</p>", unsafe_allow_html=True)
-                    grafico_pizza_ano = alt.Chart(df_cat_ano).mark_arc(innerRadius=60).encode(
-                        theta=alt.Theta(field="Valor", type="quantitative"),
-                        color=alt.Color(
-                            field="Categoria",
-                            type="nominal",
-                            scale=alt.Scale(scheme="tealblues")
-                        ),
-                        tooltip=[
-                            alt.Tooltip("Categoria", title="Categoria"),
-                            alt.Tooltip("Valor", format="$,.2f", title="Valor"),
-                            alt.Tooltip("Porcentagem", format=".1f", title="Proporção (%)")
-                        ]
-                    ).properties(height=320).interactive()
-                    st.altair_chart(grafico_pizza_ano, use_container_width=True)
-            else:  # Barras 📊
-                chart_bar_cat = alt.Chart(df_cat_ano).mark_bar(
-                    color="#0d9488",
-                    cornerRadiusEnd=5
-                ).encode(
-                    x=alt.X("Valor:Q", title="Total Gasto (R$)"),
-                    y=alt.Y("Categoria:N", sort="-x", title="Categoria"),
+            col_l, col_c, col_r = st.columns([1, 2, 1])
+            with col_c:
+                st.markdown("<p style='text-align: center; font-size: 1.1rem; font-weight: 600;'>Proporção do Orçamento Anual (%)</p>", unsafe_allow_html=True)
+                grafico_pizza_ano = alt.Chart(df_cat_ano).mark_arc(innerRadius=60).encode(
+                    theta=alt.Theta(field="Valor", type="quantitative"),
+                    color=alt.Color(
+                        field="Categoria",
+                        type="nominal",
+                        scale=alt.Scale(scheme="tealblues")
+                    ),
                     tooltip=[
                         alt.Tooltip("Categoria", title="Categoria"),
                         alt.Tooltip("Valor", format="$,.2f", title="Valor"),
                         alt.Tooltip("Porcentagem", format=".1f", title="Proporção (%)")
                     ]
-                ).properties(height=300).interactive()
-                st.altair_chart(chart_bar_cat, use_container_width=True)
+                ).properties(height=320).interactive()
+                st.altair_chart(grafico_pizza_ano, use_container_width=True)
         else:
             st.info("Nenhum gasto cadastrado no ano selecionado para analisar categorias.")
             
