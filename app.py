@@ -607,3 +607,43 @@ with tab_comparacao:
         ).properties(height=300).interactive()
         
         st.altair_chart(chart_bar_ano, use_container_width=True)
+
+    # 5. Agrupamento por Categoria Anual e Gráfico de Pizza
+    st.markdown("---")
+    st.markdown("### 🏷️ Distribuição de Gastos por Categoria Anual")
+    
+    resumo_cat_ano = st.session_state.gerenciador.agrupar_por_categoria_ano(ano_selecionado)
+    
+    if resumo_cat_ano:
+        df_cat_ano = pd.DataFrame([
+            {"Categoria": cat, "Valor (R$)": total}
+            for cat, total in resumo_cat_ano.items()
+        ])
+        
+        total_ano = df_cat_ano["Valor (R$)"].sum()
+        df_cat_ano["Porcentagem (%)"] = (df_cat_ano["Valor (R$)"] / total_ano * 100).round(1)
+        
+        col_tabela_cat, col_grafico_cat = st.columns([1, 1])
+        
+        with col_tabela_cat:
+            df_resumo_cat_ex = df_cat_ano.copy()
+            df_resumo_cat_ex["Valor (R$)"] = df_resumo_cat_ex["Valor (R$)"].apply(lambda x: f"R$ {x:,.2f}")
+            df_resumo_cat_ex["Porcentagem (%)"] = df_resumo_cat_ex["Porcentagem (%)"].apply(lambda x: f"{x:.1f}%")
+            st.markdown("#### Detalhamento por Categoria")
+            st.dataframe(df_resumo_cat_ex, use_container_width=True, hide_index=True)
+            
+        with col_grafico_cat:
+            st.markdown("#### Gráfico de Proporção Anual (%)")
+            grafico_pizza_ano = alt.Chart(df_cat_ano).mark_arc(innerRadius=60).encode(
+                theta=alt.Theta(field="Valor (R$)", type="quantitative"),
+                color=alt.Color(
+                    field="Categoria",
+                    type="nominal",
+                    scale=alt.Scale(scheme="tealblues")
+                ),
+                tooltip=["Categoria", "Valor (R$)", "Porcentagem (%)"]
+            ).properties(height=280).interactive()
+            
+            st.altair_chart(grafico_pizza_ano, use_container_width=True)
+    else:
+        st.info("Nenhum gasto cadastrado para o ano selecionado para analisar categorias.")

@@ -220,9 +220,20 @@ class GerenciadorFinancas:
                 filtrados.append(g)
         return filtrados
 
+    def agrupar_por_categoria_ano(self, ano: int) -> Dict[str, float]:
+        """
+        Filtra todos os gastos pelo ano selecionado e os agrupa somando por categoria.
+        """
+        agrupado: Dict[str, float] = {}
+        for g in self.gastos:
+            if g.data.year == ano:
+                cat_normalizada = g.categoria.strip().capitalize()
+                agrupado[cat_normalizada] = agrupado.get(cat_normalizada, 0.0) + g.valor
+        return agrupado
+
+
 # Demonstração de uso do módulo
 if __name__ == "__main__":
     print("--- Inicializando Gerenciador de Finanças (Supabase SaaS Mode) ---")
     gerenciador = GerenciadorFinancas(user_id="demo_clerk_id")
     print("Objeto configurado com sucesso!")
-
