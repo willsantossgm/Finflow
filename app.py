@@ -532,7 +532,7 @@ with tab_comparacao:
     st.markdown("## 📊 Comparação Geral")
     st.markdown("Analise o histórico consolidado de gastos organizados por ano e mês, livre de filtros mensais da barra lateral.")
     
-    # 1. Filtro de Ano
+    # 1. Filtro de Ano e Seletor de Formato Unificado
     todos_gastos = st.session_state.gerenciador.gastos
     anos_disponiveis = sorted(list(set(g.data.year for g in todos_gastos)))
     ano_atual = date.today().year
@@ -545,11 +545,19 @@ with tab_comparacao:
     except ValueError:
         default_ano_idx = len(anos_disponiveis) - 1
         
-    ano_selecionado = st.selectbox(
-        "Selecione o Ano de Análise:",
-        options=anos_disponiveis,
-        index=default_ano_idx
-    )
+    col_ano, col_formato = st.columns([1, 2])
+    with col_ano:
+        ano_selecionado = st.selectbox(
+            "Selecione o Ano de Análise:",
+            options=anos_disponiveis,
+            index=default_ano_idx
+        )
+    with col_formato:
+        formato_visual = st.radio(
+            "📊 Selecione o Formato de Visualização:",
+            options=["Rosca ⭕", "Barras 📊", "Tabela 📋"],
+            horizontal=True
+        )
     
     # 2. Filtragem e Agrupamento
     gastos_ano = [g for g in todos_gastos if g.data.year == ano_selecionado]
@@ -573,29 +581,33 @@ with tab_comparacao:
         <br>
     """, unsafe_allow_html=True)
     
-    # 4. Tabela Elegante de Resumo e Gráfico
-    col_tabela, col_grafico = st.columns([1, 1])
+    # Prepara dados mensais
+    df_grafico_ano = pd.DataFrame([
+        {
+            "Mês": NOME_MESES_CURTO[m],
+            "Valor (R$)": resumo_mensal_ano[m]
+        }
+        for m in range(1, 13)
+    ])
     
-    with col_tabela:
-        df_resumo_ano = pd.DataFrame([
-            {
-                "Mês": NOME_MESES[m],
-                "Total Gasto (R$)": f"R$ {resumo_mensal_ano[m]:,.2f}"
-            }
-            for m in range(1, 13)
+    # Prepara dados de categoria
+    resumo_cat_ano = st.session_state.gerenciador.agrupar_por_categoria_ano(ano_selecionado)
+    if resumo_cat_ano:
+        df_cat_ano = pd.DataFrame([
+            {"Categoria": cat, "Valor (R$)": total}
+            for cat, total in resumo_cat_ano.items()
         ])
-        st.markdown("#### Tabela Mensal")
-        st.dataframe(df_resumo_ano, use_container_width=True, hide_index=True)
+        total_ano = df_cat_ano["Valor (R$)"].sum()
+        df_cat_ano["Porcentagem (%)"] = (df_cat_ano["Valor (R$)"] / total_ano * 100).round(1)
+    else:
+        df_cat_ano = pd.DataFrame(columns=["Categoria", "Valor (R$)", "Porcentagem (%)"])
+
+    # 4. Renderização Condicional da Tela Inteira
+    if formato_visual in ["Rosca ⭕", "Barras 📊"]:
+        # MODO VISUAL (Somente gráficos)
         
-    with col_grafico:
-        df_grafico_ano = pd.DataFrame([
-            {
-                "Mês": NOME_MESES_CURTO[m],
-                "Valor (R$)": resumo_mensal_ano[m]
-            }
-            for m in range(1, 13)
-        ])
-        st.markdown("#### Histórico de Gastos por Mês (R$)")
+        # Linha de Cima: Histórico Mensal
+        st.markdown("### 📈 Histórico de Gastos por Mês (R$)")
         chart_bar_ano = alt.Chart(df_grafico_ano).mark_bar(
             color="#0d9488",
             cornerRadiusTopLeft=5,
@@ -605,77 +617,69 @@ with tab_comparacao:
             y=alt.Y("Valor (R$):Q", title="Total Gasto (R$)"),
             tooltip=["Mês", "Valor (R$)"]
         ).properties(height=300).interactive()
-        
         st.altair_chart(chart_bar_ano, use_container_width=True)
-
-    # 5. Agrupamento por Categoria Anual e Gráfico de Pizza
-    st.markdown("---")
-    st.markdown("### 🏷️ Distribuição de Gastos por Categoria Anual")
-    
-    resumo_cat_ano = st.session_state.gerenciador.agrupar_por_categoria_ano(ano_selecionado)
-    
-    if resumo_cat_ano:
-        df_cat_ano = pd.DataFrame([
-            {"Categoria": cat, "Valor (R$)": total}
-            for cat, total in resumo_cat_ano.items()
-        ])
         
-        total_ano = df_cat_ano["Valor (R$)"].sum()
-        df_cat_ano["Porcentagem (%)"] = (df_cat_ano["Valor (R$)"] / total_ano * 100).round(1)
+        st.markdown("---")
         
-        # Seletor de Formato
-        formato_visual = st.radio(
-            "📊 Selecione o Formato de Visualização:",
-            options=["Rosca ⭕", "Barras 📊", "Tabela 📋"],
-            horizontal=True
-        )
-        
-        if formato_visual == "Rosca ⭕":
-            # Gráfico de Rosca Centralizado
-            col_l, col_c, col_r = st.columns([1, 2, 1])
-            with col_c:
-                st.markdown("<p style='text-align: center; font-size: 1.1rem; font-weight: 600;'>Proporção do Orçamento Anual (%)</p>", unsafe_allow_html=True)
-                grafico_pizza_ano = alt.Chart(df_cat_ano).mark_arc(innerRadius=60).encode(
-                    theta=alt.Theta(field="Valor (R$)", type="quantitative"),
-                    color=alt.Color(
-                        field="Categoria",
-                        type="nominal",
-                        scale=alt.Scale(scheme="tealblues")
-                    ),
+        # Linha de Baixo: Distribuição por Categoria
+        st.markdown("### 🏷️ Distribuição de Gastos por Categoria Anual")
+        if not df_cat_ano.empty:
+            if formato_visual == "Rosca ⭕":
+                col_l, col_c, col_r = st.columns([1, 2, 1])
+                with col_c:
+                    st.markdown("<p style='text-align: center; font-size: 1.1rem; font-weight: 600;'>Proporção do Orçamento Anual (%)</p>", unsafe_allow_html=True)
+                    grafico_pizza_ano = alt.Chart(df_cat_ano).mark_arc(innerRadius=60).encode(
+                        theta=alt.Theta(field="Valor (R$)", type="quantitative"),
+                        color=alt.Color(
+                            field="Categoria",
+                            type="nominal",
+                            scale=alt.Scale(scheme="tealblues")
+                        ),
+                        tooltip=[
+                            alt.Tooltip("Categoria", title="Categoria"),
+                            alt.Tooltip("Valor (R$)", format="$,.2f", title="Valor"),
+                            alt.Tooltip("Porcentagem (%)", format=".1f", title="Proporção")
+                        ]
+                    ).properties(height=320).interactive()
+                    st.altair_chart(grafico_pizza_ano, use_container_width=True)
+            else:  # Barras 📊
+                chart_bar_cat = alt.Chart(df_cat_ano).mark_bar(
+                    color="#0d9488",
+                    cornerRadiusEnd=5
+                ).encode(
+                    x=alt.X("Valor (R$):Q", title="Total Gasto (R$)"),
+                    y=alt.Y("Categoria:N", sort="-x", title="Categoria"),
                     tooltip=[
                         alt.Tooltip("Categoria", title="Categoria"),
                         alt.Tooltip("Valor (R$)", format="$,.2f", title="Valor"),
                         alt.Tooltip("Porcentagem (%)", format=".1f", title="Proporção")
                     ]
-                ).properties(height=320).interactive()
-                
-                st.altair_chart(grafico_pizza_ano, use_container_width=True)
-                
-        elif formato_visual == "Barras 📊":
-            # Gráfico de Barras
-            st.markdown("#### Comparativo de Gastos por Categoria (R$)")
-            chart_bar_cat = alt.Chart(df_cat_ano).mark_bar(
-                color="#0d9488",
-                cornerRadiusEnd=5
-            ).encode(
-                x=alt.X("Valor (R$):Q", title="Total Gasto (R$)"),
-                y=alt.Y("Categoria:N", sort="-x", title="Categoria"),
-                tooltip=[
-                    alt.Tooltip("Categoria", title="Categoria"),
-                    alt.Tooltip("Valor (R$)", format="$,.2f", title="Valor"),
-                    alt.Tooltip("Porcentagem (%)", format=".1f", title="Proporção")
-                ]
-            ).properties(height=300).interactive()
+                ).properties(height=300).interactive()
+                st.altair_chart(chart_bar_cat, use_container_width=True)
+        else:
+            st.info("Nenhum gasto cadastrado no ano selecionado para analisar categorias.")
             
-            st.altair_chart(chart_bar_cat, use_container_width=True)
-            
-        else: # Tabela 📋
-            # Tabela Limpa e Elegante
-            df_resumo_cat_ex = df_cat_ano.copy()
-            df_resumo_cat_ex["Valor (R$)"] = df_resumo_cat_ex["Valor (R$)"].apply(lambda x: f"R$ {x:,.2f}")
-            df_resumo_cat_ex["Porcentagem (%)"] = df_resumo_cat_ex["Porcentagem (%)"].apply(lambda x: f"{x:.1f}%")
-            
-            st.markdown("#### Detalhamento por Categoria")
-            st.dataframe(df_resumo_cat_ex, use_container_width=True, hide_index=True)
     else:
-        st.info("Nenhum gasto cadastrado para o ano selecionado para analisar categorias.")
+        # MODO TABELA (📋) - Esconde todos os gráficos, exibe tabelas mensais e por categoria lado a lado
+        col_tab1, col_tab2 = st.columns([1, 1])
+        
+        with col_tab1:
+            st.markdown("### 📅 Tabela Mensal de Gastos")
+            df_resumo_ano = pd.DataFrame([
+                {
+                    "Mês": NOME_MESES[m],
+                    "Total Gasto (R$)": f"R$ {resumo_mensal_ano[m]:,.2f}"
+                }
+                for m in range(1, 13)
+            ])
+            st.dataframe(df_resumo_ano, use_container_width=True, hide_index=True)
+            
+        with col_tab2:
+            st.markdown("### 🏷️ Detalhamento por Categoria Anual")
+            if not df_cat_ano.empty:
+                df_resumo_cat_ex = df_cat_ano.copy()
+                df_resumo_cat_ex["Valor (R$)"] = df_resumo_cat_ex["Valor (R$)"].apply(lambda x: f"R$ {x:,.2f}")
+                df_resumo_cat_ex["Porcentagem (%)"] = df_resumo_cat_ex["Porcentagem (%)"].apply(lambda x: f"{x:.1f}%")
+                st.dataframe(df_resumo_cat_ex, use_container_width=True, hide_index=True)
+            else:
+                st.info("Nenhum gasto cadastrado no ano selecionado para analisar categorias.")
