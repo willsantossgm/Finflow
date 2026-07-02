@@ -608,16 +608,29 @@ with tab_comparacao:
         
         # Linha de Cima: Histórico Mensal
         st.markdown("### 📈 Histórico de Gastos por Mês (R$)")
-        chart_bar_ano = alt.Chart(df_grafico_ano).mark_bar(
-            color="#0d9488",
-            cornerRadiusTopLeft=5,
-            cornerRadiusTopRight=5
-        ).encode(
-            x=alt.X("Mês:N", sort=list(NOME_MESES_CURTO.values()), title="Mês"),
-            y=alt.Y("Valor (R$):Q", title="Total Gasto (R$)"),
-            tooltip=["Mês", "Valor (R$)"]
-        ).properties(height=300).interactive()
-        st.altair_chart(chart_bar_ano, use_container_width=True)
+        if formato_visual == "Rosca ⭕":
+            # Gráfico de Linhas elegante que combina com o visual circular
+            chart_monthly = alt.Chart(df_grafico_ano).mark_line(
+                color="#0d9488",
+                point=alt.OverlayMarkDef(color="#0d9488", size=60)
+            ).encode(
+                x=alt.X("Mês:N", sort=list(NOME_MESES_CURTO.values()), title="Mês"),
+                y=alt.Y("Valor (R$):Q", title="Total Gasto (R$)"),
+                tooltip=["Mês", "Valor (R$)"]
+            ).properties(height=300).interactive()
+        else:
+            # Gráfico de Barras
+            chart_monthly = alt.Chart(df_grafico_ano).mark_bar(
+                color="#0d9488",
+                cornerRadiusTopLeft=5,
+                cornerRadiusTopRight=5
+            ).encode(
+                x=alt.X("Mês:N", sort=list(NOME_MESES_CURTO.values()), title="Mês"),
+                y=alt.Y("Valor (R$):Q", title="Total Gasto (R$)"),
+                tooltip=["Mês", "Valor (R$)"]
+            ).properties(height=300).interactive()
+            
+        st.altair_chart(chart_monthly, use_container_width=True)
         
         st.markdown("---")
         
