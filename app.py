@@ -82,7 +82,9 @@ ARQUIVO_DADOS = "dados_financeiros.json"
 ARQUIVO_CONFIG = "config_financas.json"
 
 # Inicialização e persistência no Session State do Streamlit
-if "gerenciador" not in st.session_state:
+# O check de hasattr evita AttributeErrors caso a classe tenha sido atualizada na nuvem
+# mas o objeto antigo permaneça persistido na sessão do usuário.
+if "gerenciador" not in st.session_state or not hasattr(st.session_state.gerenciador, "obter_meses_disponiveis"):
     st.session_state.gerenciador = GerenciadorFinancas()
     if os.path.exists(ARQUIVO_DADOS):
         try:
