@@ -150,33 +150,6 @@ if st.sidebar.button("💾 Salvar Configurações", use_container_width=True):
     except Exception as e:
         st.sidebar.error(f"Erro ao salvar configurações: {e}")
 
-# Seção de Categorias Personalizadas na barra lateral
-st.sidebar.markdown("---")
-st.sidebar.markdown("### 🏷️ Nova Categoria")
-nova_categoria = st.sidebar.text_input("Nome da Categoria:", placeholder="Ex: Educação, Presentes").strip()
-
-if st.sidebar.button("➕ Criar Categoria", use_container_width=True):
-    if nova_categoria:
-        cat_normalizada = nova_categoria.capitalize()
-        if cat_normalizada not in st.session_state.categorias:
-            st.session_state.categorias.append(cat_normalizada)
-            try:
-                # Salva a lista de categorias atualizada nas configurações
-                with open(ARQUIVO_CONFIG, "w", encoding="utf-8") as f:
-                    json.dump({
-                        "renda_mensal": st.session_state.renda_mensal,
-                        "limite_gastos": st.session_state.limite_gastos,
-                        "categorias": st.session_state.categorias
-                    }, f)
-                st.sidebar.success(f"Categoria '{cat_normalizada}' criada!")
-                st.rerun()
-            except Exception as e:
-                st.sidebar.error(f"Erro ao salvar nova categoria: {e}")
-        else:
-            st.sidebar.warning("Esta categoria já existe!")
-    else:
-        st.sidebar.error("Por favor, digite um nome válido.")
-
 # ----------------- PAINEL CENTRAL (SALDO) -----------------
 renda_atual = st.session_state.renda_mensal
 total_gastos = sum(g.valor for g in st.session_state.gerenciador.gastos)
@@ -237,34 +210,90 @@ col_form, col_list = st.columns([1, 2])
 
 with col_form:
     st.markdown("### 📝 Adicionar Novo Gasto")
-    with st.form("form_novo_gasto", clear_on_submit=True):
-        descricao = st.text_input("Descrição do Gasto", placeholder="Ex: Mercado Municipal, Gasolina, Uber")
-        valor = st.number_input("Valor (R$)", min_value=0.01, step=5.0, format="%.2f")
-        categoria = st.selectbox(
-            "Categoria",
-            st.session_state.categorias
-        )
-        data_gasto = st.date_input("Data do Gasto", value=date.today())
+    
+    # Estados locais de valor para limpar após adicionar gasto
+    if "val_descricao" not in st.session_state:
+        st.session_state.val_descricao = ""
+    if "val_valor" not in st.session_state:
+        st.session_state.val_valor = 0.0
 
-        btn_adicionar = st.form_submit_button("Adicionar Gasto ➕", use_container_width=True)
+    descricao = st.text_input("Descrição do Gasto", value=st.session_state.val_descricao, placeholder="Ex: Mercado Municipal, Gasolina, Uber")
+    valor = st.number_input("Valor (R$)", min_value=0.0, value=st.session_state.val_valor, step=5.0, format="%.2f")
+    
+    # Monta as opções do dropdown com a opção especial no final
+    opcoes_dropdown_cat = st.session_state.categorias + ["➕ Criar Nova Categoria..."]
+    
+    # Garante a categoria selecionada ativa
+    if "selected_categoria" not in st.session_state:
+        st.session_state.selected_categoria = st.session_state.categorias[0]
+        
+    try:
+        default_idx = opcoes_dropdown_cat.index(st.session_state.selected_categoria)
+    except ValueError:
+        default_idx = 0
 
-        if btn_adicionar:
-            if not descricao.strip():
-                st.error("Por favor, preencha a descrição do gasto.")
+    categoria_selecionada = st.selectbox(
+        "Categoria",
+        options=opcoes_dropdown_cat,
+        index=default_idx
+    )
+
+    # Condicional reativa para criar nova categoria
+    if categoria_selecionada == "➕ Criar Nova Categoria...":
+        nova_categoria_input = st.text_input("Digite o nome da nova categoria:", placeholder="Ex: Educação, Presentes").strip()
+        if st.button("Salvar Categoria", use_container_width=True):
+            if nova_categoria_input:
+                cat_normalizada = nova_categoria_input.capitalize()
+                if cat_normalizada not in st.session_state.categorias:
+                    st.session_state.categorias.append(cat_normalizada)
+                    # Define a categoria recém-criada como selecionada
+                    st.session_state.selected_categoria = cat_normalizada
+                    try:
+                        # Salva permanentemente as categorias
+                        with open(ARQUIVO_CONFIG, "w", encoding="utf-8") as f:
+                            json.dump({
+                                "renda_mensal": st.session_state.renda_mensal,
+                                "limite_gastos": st.session_state.limite_gastos,
+                                "categorias": st.session_state.categorias
+                            }, f)
+                        st.success(f"Categoria '{cat_normalizada}' criada e selecionada!")
+                        st.rerun()
+                    except Exception as e:
+                        st.error(f"Erro ao salvar nova categoria: {e}")
+                else:
+                    st.warning("Esta categoria já existe!")
             else:
-                try:
-                    # Adiciona e persiste os dados
-                    st.session_state.gerenciador.adicionar_gasto(
-                        descricao=descricao,
-                        valor=valor,
-                        categoria=categoria,
-                        data=data_gasto
-                    )
-                    st.session_state.gerenciador.salvar_dados(ARQUIVO_DADOS)
-                    st.success("Gasto adicionado e salvo com sucesso!")
-                    st.rerun()
-                except Exception as e:
-                    st.error(f"Erro ao adicionar gasto: {e}")
+                st.error("Por favor, digite um nome válido.")
+    else:
+        st.session_state.selected_categoria = categoria_selecionada
+
+    data_gasto = st.date_input("Data do Gasto", value=date.today())
+
+    if st.button("Adicionar Gasto ➕", use_container_width=True):
+        if not descricao.strip():
+            st.error("Por favor, preencha a descrição do gasto.")
+        elif valor <= 0:
+            st.error("O valor do gasto deve ser maior que zero.")
+        elif st.session_state.selected_categoria == "➕ Criar Nova Categoria...":
+            st.error("Por favor, crie e salve a nova categoria primeiro ou escolha uma existente.")
+        else:
+            try:
+                # Adiciona e persiste os dados
+                st.session_state.gerenciador.adicionar_gasto(
+                    descricao=descricao,
+                    valor=valor,
+                    categoria=st.session_state.selected_categoria,
+                    data=data_gasto
+                )
+                st.session_state.gerenciador.salvar_dados(ARQUIVO_DADOS)
+                st.success("Gasto adicionado e salvo com sucesso!")
+                
+                # Reseta os campos de entrada redefinindo as variáveis do Session State
+                st.session_state.val_descricao = ""
+                st.session_state.val_valor = 0.0
+                st.rerun()
+            except Exception as e:
+                st.error(f"Erro ao adicionar gasto: {e}")
 
 with col_list:
     st.markdown("### 📊 Histórico de Gastos")
