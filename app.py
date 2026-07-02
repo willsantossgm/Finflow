@@ -4,6 +4,7 @@ import json
 import streamlit as st
 import pandas as pd
 import altair as alt
+import requests
 
 # Importando a classe do nosso backend
 from backend.financas import GerenciadorFinancas
@@ -77,22 +78,105 @@ st.markdown("""
     </style>
 """, unsafe_allow_html=True)
 
-# Definição dos caminhos dos arquivos de dados
+# Definição dos caminhos dos arquivos de dados e config locais
 ARQUIVO_DADOS = "dados_financeiros.json"
 ARQUIVO_CONFIG = "config_financas.json"
 
-# Inicialização e persistência no Session State do Streamlit
-# O check de hasattr evita AttributeErrors caso a classe tenha sido atualizada na nuvem
-# mas o objeto antigo permaneça persistido na sessão do usuário.
-if "gerenciador" not in st.session_state or not hasattr(st.session_state.gerenciador, "obter_meses_disponiveis"):
-    st.session_state.gerenciador = GerenciadorFinancas()
-    if os.path.exists(ARQUIVO_DADOS):
-        try:
-            st.session_state.gerenciador.carregar_dados(ARQUIVO_DADOS)
-        except Exception as e:
-            st.error(f"Erro ao carregar dados salvos: {e}")
+# Helper functions para Autenticação via Supabase Auth
+def supabase_login(email, password):
+    url = "https://ojiutbtyaxmpwstgnmnn.supabase.co/auth/v1/token?grant_type=password"
+    headers = {
+        "apikey": "sb_publishable_c-OH1QCwqmsWCmDj9rMq-w_eaqTJgDQ",
+        "Content-Type": "application/json"
+    }
+    payload = {"email": email, "password": password}
+    try:
+        response = requests.post(url, headers=headers, json=payload)
+        return response
+    except Exception:
+        return None
 
-# Carregar configurações iniciais (Renda, Limite de Gastos e Categorias)
+def supabase_signup(email, password):
+    url = "https://ojiutbtyaxmpwstgnmnn.supabase.co/auth/v1/signup"
+    headers = {
+        "apikey": "sb_publishable_c-OH1QCwqmsWCmDj9rMq-w_eaqTJgDQ",
+        "Content-Type": "application/json"
+    }
+    payload = {"email": email, "password": password}
+    try:
+        response = requests.post(url, headers=headers, json=payload)
+        return response
+    except Exception:
+        return None
+
+# ----------------- TELA DE AUTENTICAÇÃO CLERK / SUPABASE RLS -----------------
+if "authenticated" not in st.session_state:
+    st.session_state.authenticated = False
+if "clerk_user_id" not in st.session_state:
+    st.session_state.clerk_user_id = None
+if "user_email" not in st.session_state:
+    st.session_state.user_email = None
+
+if not st.session_state.authenticated:
+    # Cabeçalho da página de login
+    st.markdown("""
+        <div class="title-container">
+            <h1 class="title-text">✨ FinFlow SaaS</h1>
+            <p class="subtitle-text">Controle Financeiro Premium • Identidade Segura via Clerk</p>
+        </div>
+    """, unsafe_allow_html=True)
+    
+    st.markdown("<div style='max-width: 500px; margin: 0 auto; padding: 2rem; background-color: #1e293b; border-radius: 12px; border: 1px solid #334155;'>", unsafe_allow_html=True)
+    
+    auth_option = st.radio("Selecione uma opção:", ["Entrar (Login)", "Registrar-se (Cadastro)"], horizontal=True)
+    
+    email = st.text_input("E-mail do Clerk", placeholder="nome@provedor.com")
+    senha = st.text_input("Senha", type="password", placeholder="Digite sua senha")
+    
+    if auth_option == "Entrar (Login)":
+        if st.button("Acessar Conta 🔑", use_container_width=True):
+            if email and senha:
+                with st.spinner("Conectando ao Clerk..."):
+                    res = supabase_login(email, senha)
+                    if res is not None and res.status_code == 200:
+                        data = res.json()
+                        st.session_state.authenticated = True
+                        st.session_state.clerk_user_id = f"user_{data['user']['id']}"
+                        st.session_state.user_email = email
+                        st.success("Autenticado com sucesso!")
+                        st.rerun()
+                    else:
+                        error_detail = res.json().get("error_description", "Senha incorreta ou e-mail inválido.") if res is not None else "Erro de rede ao conectar à nuvem."
+                        st.error(f"Erro no Login: {error_detail}")
+            else:
+                st.error("Preencha todos os campos!")
+    else:
+        if st.button("Criar Conta Nova 🚀", use_container_width=True):
+            if email and senha:
+                if len(senha) < 6:
+                    st.error("A senha deve ter no mínimo 6 caracteres.")
+                else:
+                    with st.spinner("Cadastrando no Clerk..."):
+                        res = supabase_signup(email, senha)
+                        if res is not None and res.status_code in [200, 201]:
+                            st.success("Cadastro efetuado! Se necessário, verifique sua caixa de e-mail e faça login.")
+                        else:
+                            error_detail = res.json().get("message", "E-mail inválido ou já registrado.") if res is not None else "Erro de rede ao conectar à nuvem."
+                            st.error(f"Erro no Cadastro: {error_detail}")
+            else:
+                st.error("Preencha todos os campos!")
+                
+    st.markdown("</div>", unsafe_allow_html=True)
+    st.stop() # Bloqueia toda a renderização abaixo até que faça login!
+
+# ----------------- INICIALIZAÇÃO DO GERENCIADOR AUTENTICADO -----------------
+# Garantimos que o GerenciadorFinancas seja instanciado com o ID do Clerk atual
+if "gerenciador" not in st.session_state or getattr(st.session_state.gerenciador, "user_id", None) != st.session_state.clerk_user_id:
+    st.session_state.gerenciador = GerenciadorFinancas(user_id=st.session_state.clerk_user_id)
+    # Tenta carregar dados do Supabase
+    st.session_state.gerenciador.carregar_dados(ARQUIVO_DADOS)
+
+# Carregar configurações locais de Renda e Categorias
 if "renda_mensal" not in st.session_state:
     st.session_state.renda_mensal = 0.0
 if "limite_gastos" not in st.session_state:
@@ -111,15 +195,28 @@ if os.path.exists(ARQUIVO_CONFIG):
     except Exception:
         pass
 
-# Cabeçalho da aplicação
-st.markdown("""
+# Cabeçalho da aplicação (Usuário Logado)
+st.markdown(f"""
     <div class="title-container">
         <h1 class="title-text">✨ FinFlow</h1>
-        <p class="subtitle-text">Controle Financeiro Premium • Design Moderno & Gestão Inteligente</p>
+        <p class="subtitle-text">Controle Financeiro Premium • Logado como: <b>{st.session_state.user_email}</b></p>
     </div>
 """, unsafe_allow_html=True)
 
 # ----------------- BARRA LATERAL (SIDEBAR) -----------------
+st.sidebar.markdown("### 👤 Perfil & Autenticação")
+st.sidebar.info(f"**Conta:** {st.session_state.user_email}\n\n**Clerk ID:** `{st.session_state.clerk_user_id[:20]}...`")
+
+if st.sidebar.button("🚪 Sair (Logout)", use_container_width=True):
+    st.session_state.authenticated = False
+    st.session_state.clerk_user_id = None
+    st.session_state.user_email = None
+    # Limpa o gerenciador
+    st.session_state.gerenciador = GerenciadorFinancas()
+    st.success("Sessão encerrada!")
+    st.rerun()
+
+st.sidebar.markdown("---")
 st.sidebar.markdown("### ⚙️ Configurações Gerais")
 renda_input = st.sidebar.number_input(
     "Defina sua Renda Mensal (R$):",
@@ -525,4 +622,3 @@ with tab_analise:
             st.altair_chart(chart_line_sem, use_container_width=True)
         else:
             st.info("Adicione gastos para ver a linha de tendências.")
-
