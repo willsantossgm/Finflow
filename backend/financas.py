@@ -129,6 +129,20 @@ class GerenciadorFinancas:
             )
             self.gastos.append(gasto)
 
+    def remover_gasto(self, id_gasto: str) -> bool:
+        """
+        Remove um gasto da lista baseado no seu ID único.
+
+        Args:
+            id_gasto (str): O ID único do gasto a ser removido.
+
+        Returns:
+            bool: True se o gasto foi encontrado e removido, False caso contrário.
+        """
+        original_len = len(self.gastos)
+        self.gastos = [gasto for gasto in self.gastos if gasto.id != id_gasto]
+        return len(self.gastos) < original_len
+
 
 # Demonstração de uso do módulo (executada quando o arquivo roda diretamente)
 if __name__ == "__main__":

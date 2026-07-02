@@ -90,11 +90,13 @@ if "gerenciador" not in st.session_state:
         except Exception as e:
             st.error(f"Erro ao carregar dados salvos: {e}")
 
-# Carregar configurações iniciais (Renda e Limite de Gastos)
+# Carregar configurações iniciais (Renda, Limite de Gastos e Categorias)
 if "renda_mensal" not in st.session_state:
     st.session_state.renda_mensal = 0.0
 if "limite_gastos" not in st.session_state:
     st.session_state.limite_gastos = 1500.0
+if "categorias" not in st.session_state:
+    st.session_state.categorias = ["Alimentação", "Moradia", "Transporte", "Lazer", "Saúde"]
 
 if os.path.exists(ARQUIVO_CONFIG):
     try:
@@ -102,6 +104,8 @@ if os.path.exists(ARQUIVO_CONFIG):
             config = json.load(f)
             st.session_state.renda_mensal = config.get("renda_mensal", 0.0)
             st.session_state.limite_gastos = config.get("limite_gastos", 1500.0)
+            if "categorias" in config:
+                st.session_state.categorias = config["categorias"]
     except Exception:
         pass
 
@@ -138,12 +142,40 @@ if st.sidebar.button("💾 Salvar Configurações", use_container_width=True):
         with open(ARQUIVO_CONFIG, "w", encoding="utf-8") as f:
             json.dump({
                 "renda_mensal": renda_input,
-                "limite_gastos": limite_input
+                "limite_gastos": limite_input,
+                "categorias": st.session_state.categorias
             }, f)
         st.sidebar.success("Configurações salvas!")
         st.rerun()
     except Exception as e:
         st.sidebar.error(f"Erro ao salvar configurações: {e}")
+
+# Seção de Categorias Personalizadas na barra lateral
+st.sidebar.markdown("---")
+st.sidebar.markdown("### 🏷️ Nova Categoria")
+nova_categoria = st.sidebar.text_input("Nome da Categoria:", placeholder="Ex: Educação, Presentes").strip()
+
+if st.sidebar.button("➕ Criar Categoria", use_container_width=True):
+    if nova_categoria:
+        cat_normalizada = nova_categoria.capitalize()
+        if cat_normalizada not in st.session_state.categorias:
+            st.session_state.categorias.append(cat_normalizada)
+            try:
+                # Salva a lista de categorias atualizada nas configurações
+                with open(ARQUIVO_CONFIG, "w", encoding="utf-8") as f:
+                    json.dump({
+                        "renda_mensal": st.session_state.renda_mensal,
+                        "limite_gastos": st.session_state.limite_gastos,
+                        "categorias": st.session_state.categorias
+                    }, f)
+                st.sidebar.success(f"Categoria '{cat_normalizada}' criada!")
+                st.rerun()
+            except Exception as e:
+                st.sidebar.error(f"Erro ao salvar nova categoria: {e}")
+        else:
+            st.sidebar.warning("Esta categoria já existe!")
+    else:
+        st.sidebar.error("Por favor, digite um nome válido.")
 
 # ----------------- PAINEL CENTRAL (SALDO) -----------------
 renda_atual = st.session_state.renda_mensal
@@ -210,7 +242,7 @@ with col_form:
         valor = st.number_input("Valor (R$)", min_value=0.01, step=5.0, format="%.2f")
         categoria = st.selectbox(
             "Categoria",
-            ["Alimentação", "Moradia", "Transporte", "Lazer", "Saúde"]
+            st.session_state.categorias
         )
         data_gasto = st.date_input("Data do Gasto", value=date.today())
 
@@ -253,6 +285,57 @@ with col_list:
             })
 
         st.dataframe(dados_tabela, use_container_width=True)
+
+        # Botão para exportar dados em CSV
+        df_export = pd.DataFrame([
+            {
+                "ID": g.id,
+                "Descrição": g.descricao,
+                "Valor (R$)": g.valor,
+                "Categoria": g.categoria,
+                "Data": g.data.strftime("%Y-%m-%d")
+            }
+            for g in gastos
+        ])
+        csv_data = df_export.to_csv(index=False).encode("utf-8")
+        
+        st.download_button(
+            label="📥 Exportar Gastos (CSV)",
+            data=csv_data,
+            file_name="gastos_finflow.csv",
+            mime="text/csv",
+            use_container_width=True
+        )
+
+        st.markdown("---")
+
+        # Exclusão de Gastos
+        st.markdown("### 🗑️ Excluir Gasto")
+        opcoes_exclusao = {
+            gasto.id: f"{gasto.descricao} (R$ {gasto.valor:.2f} - {gasto.data.strftime('%d/%m/%Y')})"
+            for gasto in gastos
+        }
+        
+        gasto_selecionado_id = st.selectbox(
+            "Selecione um gasto para excluir:",
+            options=list(opcoes_exclusao.keys()),
+            format_func=lambda x: opcoes_exclusao[x],
+            key="gasto_excluir_select"
+        )
+        
+        if st.button("Excluir Gasto 🗑️", use_container_width=True):
+            if gasto_selecionado_id:
+                if st.session_state.gerenciador.remover_gasto(gasto_selecionado_id):
+                    try:
+                        st.session_state.gerenciador.salvar_dados(ARQUIVO_DADOS)
+                        st.success("Gasto excluído com sucesso!")
+                        st.rerun()
+                    except Exception as e:
+                        st.error(f"Erro ao salvar dados após exclusão: {e}")
+                else:
+                    st.error("Erro interno ao tentar remover o gasto.")
+
+        st.markdown("---")
 
         # Gráfico de distribuição por categoria para dar mais apelo visual
         st.markdown("#### Distribuição de Gastos por Categoria")
