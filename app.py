@@ -623,42 +623,59 @@ with tab_comparacao:
         total_ano = df_cat_ano["Valor (R$)"].sum()
         df_cat_ano["Porcentagem (%)"] = (df_cat_ano["Valor (R$)"] / total_ano * 100).round(1)
         
-        col_tabela_cat, col_grafico_cat = st.columns([1, 1])
+        # Seletor de Formato
+        formato_visual = st.radio(
+            "📊 Selecione o Formato de Visualização:",
+            options=["Rosca ⭕", "Barras 📊", "Tabela 📋"],
+            horizontal=True
+        )
         
-        with col_tabela_cat:
-            st.markdown("#### Total Gasto por Categoria (R$)")
-            grafico_pizza_valor = alt.Chart(df_cat_ano).mark_arc(innerRadius=60).encode(
-                theta=alt.Theta(field="Valor (R$)", type="quantitative"),
-                color=alt.Color(
-                    field="Categoria",
-                    type="nominal",
-                    scale=alt.Scale(scheme="greens")
-                ),
+        if formato_visual == "Rosca ⭕":
+            # Gráfico de Rosca Centralizado
+            col_l, col_c, col_r = st.columns([1, 2, 1])
+            with col_c:
+                st.markdown("<p style='text-align: center; font-size: 1.1rem; font-weight: 600;'>Proporção do Orçamento Anual (%)</p>", unsafe_allow_html=True)
+                grafico_pizza_ano = alt.Chart(df_cat_ano).mark_arc(innerRadius=60).encode(
+                    theta=alt.Theta(field="Valor (R$)", type="quantitative"),
+                    color=alt.Color(
+                        field="Categoria",
+                        type="nominal",
+                        scale=alt.Scale(scheme="tealblues")
+                    ),
+                    tooltip=[
+                        alt.Tooltip("Categoria", title="Categoria"),
+                        alt.Tooltip("Valor (R$)", format="$,.2f", title="Valor"),
+                        alt.Tooltip("Porcentagem (%)", format=".1f", title="Proporção")
+                    ]
+                ).properties(height=320).interactive()
+                
+                st.altair_chart(grafico_pizza_ano, use_container_width=True)
+                
+        elif formato_visual == "Barras 📊":
+            # Gráfico de Barras
+            st.markdown("#### Comparativo de Gastos por Categoria (R$)")
+            chart_bar_cat = alt.Chart(df_cat_ano).mark_bar(
+                color="#0d9488",
+                cornerRadiusEnd=5
+            ).encode(
+                x=alt.X("Valor (R$):Q", title="Total Gasto (R$)"),
+                y=alt.Y("Categoria:N", sort="-x", title="Categoria"),
                 tooltip=[
                     alt.Tooltip("Categoria", title="Categoria"),
                     alt.Tooltip("Valor (R$)", format="$,.2f", title="Valor"),
                     alt.Tooltip("Porcentagem (%)", format=".1f", title="Proporção")
                 ]
-            ).properties(height=280).interactive()
+            ).properties(height=300).interactive()
             
-            st.altair_chart(grafico_pizza_valor, use_container_width=True)
+            st.altair_chart(chart_bar_cat, use_container_width=True)
             
-        with col_grafico_cat:
-            st.markdown("#### Proporção do Orçamento Anual (%)")
-            grafico_pizza_ano = alt.Chart(df_cat_ano).mark_arc(innerRadius=60).encode(
-                theta=alt.Theta(field="Valor (R$)", type="quantitative"),
-                color=alt.Color(
-                    field="Categoria",
-                    type="nominal",
-                    scale=alt.Scale(scheme="tealblues")
-                ),
-                tooltip=[
-                    alt.Tooltip("Categoria", title="Categoria"),
-                    alt.Tooltip("Valor (R$)", format="$,.2f", title="Valor"),
-                    alt.Tooltip("Porcentagem (%)", format=".1f", title="Proporção")
-                ]
-            ).properties(height=280).interactive()
+        else: # Tabela 📋
+            # Tabela Limpa e Elegante
+            df_resumo_cat_ex = df_cat_ano.copy()
+            df_resumo_cat_ex["Valor (R$)"] = df_resumo_cat_ex["Valor (R$)"].apply(lambda x: f"R$ {x:,.2f}")
+            df_resumo_cat_ex["Porcentagem (%)"] = df_resumo_cat_ex["Porcentagem (%)"].apply(lambda x: f"{x:.1f}%")
             
-            st.altair_chart(grafico_pizza_ano, use_container_width=True)
+            st.markdown("#### Detalhamento por Categoria")
+            st.dataframe(df_resumo_cat_ex, use_container_width=True, hide_index=True)
     else:
         st.info("Nenhum gasto cadastrado para o ano selecionado para analisar categorias.")
