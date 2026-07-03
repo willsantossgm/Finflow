@@ -493,26 +493,36 @@ if pagina_selecionada == "💸 Controle de Despesas":
     # ----------------- PÁGINA DE DESPESAS -----------------
     
     # Metas e Limite de Gastos (Barra de Metas Fina e Elegante)
-    limite_mensal = st.session_state.limite_gastos
-    if limite_mensal > 0:
-        porcentagem_limite = min(total_gastos / limite_mensal, 1.0)
+    # Metas e Limite de Gastos (Barra de Metas Fina, Dinâmica e Elegante baseada no comprometimento da receita)
+    st.markdown(f"### 🎯 Metas do Mês ({mes_filtro})")
+    
+    porcentagem_calculada = (total_gastos / renda_atual) * 100 if renda_atual > 0 else 100.0
+    porcentagem_barra = min(porcentagem_calculada, 100.0)
+    
+    if porcentagem_calculada < 50:
+        bar_color = "#00D1B2"  # Verde Neon / Ciano
+        status_msg = f"✅ **Excelente!** Nível de comprometimento saudável ({porcentagem_calculada:.1f}% da receita utilizada)."
+        status_func = st.success
+    elif porcentagem_calculada < 85:
+        bar_color = "#F39C12"  # Laranja / Amarelo
+        status_msg = f"⚠️ **Alerta moderado.** Você comprometeu {porcentagem_calculada:.1f}% da sua receita (R$ {total_gastos:,.2f} de R$ {renda_atual:,.2f}). Recomenda-se cautela com novos gastos."
+        status_func = st.warning
+    else:
+        bar_color = "#E74C3C"  # Vermelho
+        status_msg = f"🚨 **Receita altamente comprometida!** Suas despesas excederam ou atingiram o limite crítico (R$ {total_gastos:,.2f} de R$ {renda_atual:,.2f}, totalizando {porcentagem_calculada:.1f}% da receita utilizada)."
+        status_func = st.error
 
-        st.markdown(f"### 🎯 Metas do Mês ({mes_filtro})")
-
-        col_meta1, col_meta2 = st.columns([3, 1])
-        with col_meta1:
-            st.progress(porcentagem_limite)
-        with col_meta2:
-            st.markdown(f"Consumido: **R$ {total_gastos:,.2f}** de **R$ {limite_mensal:,.2f}** ({porcentagem_limite*100:.1f}%)")
-
-        if total_gastos >= limite_mensal:
-            st.error(f"🚨 **Limite de gastos excedido!** Você ultrapassou o seu teto planejado de R$ {limite_mensal:,.2f}.")
-        elif total_gastos >= limite_mensal * 0.8:
-            st.warning(f"⚠️ **Cuidado!** Você está quase atingindo seu limite (mais de 80% do teto de R$ {limite_mensal:,.2f} consumido).")
-        else:
-            st.success("✅ Seu nível de gastos está dentro da meta estipulada para o mês.")
-
-        st.markdown("---")
+    st.markdown(f'''
+        <div style="width: 100%; background-color: #1A1F2C; border-radius: 8px; height: 12px; margin-top: 10px; border: 1px solid #2D3748;">
+            <div style="background-color: {bar_color} !important; width: {porcentagem_barra}% !important; height: 100%; border-radius: 6px; transition: width 0.5s ease-in-out;"></div>
+        </div>
+        <p style="text-align: right; color: #A0AEC0; font-size: 13px; margin-top: 5px;">
+            Você já comprometeu <strong>{porcentagem_calculada:.1f}%</strong> da sua receita disponível (R$ {total_gastos:,.2f} de R$ {renda_atual:,.2f}).
+        </p>
+    ''', unsafe_allow_html=True)
+    
+    status_func(status_msg)
+    st.markdown("---")
 
     col_form, col_list = st.columns([1, 2])
 
