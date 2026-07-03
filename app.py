@@ -575,8 +575,9 @@ with tab_principal:
                 for cat, total in resumo_categorias.items()
             ])
 
-            total_geral = df_categorias["Valor"].sum()
-            df_categorias["Porcentagem"] = (df_categorias["Valor"] / total_geral * 100).round(1)
+            if not df_categorias.empty and "Valor" in df_categorias.columns:
+                total_geral = df_categorias["Valor"].sum()
+                df_categorias["Porcentagem"] = (df_categorias["Valor"] / total_geral * 100).round(1) if total_geral > 0 else 0.0
 
             col_l, col_c, col_r = st.columns([1, 2, 1])
             with col_c:
@@ -674,15 +675,19 @@ with tab_comparacao:
     
     # Prepara dados de categoria
     resumo_cat_ano = st.session_state.gerenciador.agrupar_por_categoria_ano(ano_selecionado)
+    df_cat_ano = pd.DataFrame(columns=["Categoria", "Valor", "Porcentagem"])
     if resumo_cat_ano:
-        df_cat_ano = pd.DataFrame([
+        linhas = [
             {"Categoria": cat, "Valor": total}
             for cat, total in resumo_cat_ano.items() if cat != "Receita"
-        ])
-        total_ano = df_cat_ano["Valor"].sum()
-        df_cat_ano["Porcentagem"] = (df_cat_ano["Valor"] / total_ano * 100).round(1) if total_ano > 0 else 0.0
-    else:
-        df_cat_ano = pd.DataFrame(columns=["Categoria", "Valor", "Porcentagem"])
+        ]
+        if linhas:
+            df_cat_ano = pd.DataFrame(linhas)
+            if df_cat_ano.empty or "Valor" not in df_cat_ano.columns:
+                total_ano = 0.0
+            else:
+                total_ano = df_cat_ano["Valor"].sum()
+            df_cat_ano["Porcentagem"] = (df_cat_ano["Valor"] / total_ano * 100).round(1) if total_ano > 0 else 0.0
 
     # 4. Renderização Condicional da Tela Inteira
     if formato_visual == "Rosca ⭕":
