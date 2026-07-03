@@ -474,34 +474,9 @@ if pagina_selecionada == "💸 Controle de Despesas":
     # 1. Regra para conta totalmente zerada ou sem lançamentos no mês
     if renda_atual == 0 and total_gastos == 0:
         porcentagem = 0.0
-        bar_color = "#2D3748" # Cor neutra
-        st.markdown(f'''
-            <div style="
-                width: 100% !important;
-                background-color: #1A1F2C !important;
-                border: 1px solid #2D3748 !important;
-                border-radius: 20px !important;
-                height: 20px !important;
-                margin-top: 15px !important;
-                margin-bottom: 10px !important;
-                overflow: hidden !important;
-                display: block !important;
-            ">
-                <div style="
-                    width: 3.0% !important; 
-                    background-color: {bar_color} !important;
-                    background: {bar_color} !important;
-                    height: 20px !important;
-                    border-radius: 20px !important;
-                    display: block !important;
-                ">&nbsp;</div>
-            </div>
-            <p style="text-align: right; color: #A0AEC0; font-size: 13px; margin-top: 5px;">
-                Você comprometeu <strong>0.0%</strong> da sua receita disponível.
-            </p>
-        ''', unsafe_allow_html=True)
-        st.info("ℹ️ Nenhum lançamento registrado para este mês ainda. Comece adicionando seus ganhos e gastos!")
-        st.markdown("---")
+        porcentagem_barra = 3.0
+        cor_da_borda = "#2D3748" # Cor cinza neutra
+        texto_status = "ℹ️ Nenhum lançamento registrado para este mês ainda. Comece adicionando seus ganhos ou gastos!"
     else:
         # Caso clássico com lançamentos
         if renda_atual == 0 and total_gastos > 0:
@@ -511,52 +486,61 @@ if pagina_selecionada == "💸 Controle de Despesas":
             
         porcentagem_barra = min(porcentagem, 100.0)
         
-        # 2. Definição estrita das cores dinâmicas
+        # Definição estrita das cores dinâmicas
         if porcentagem < 50:
-            bar_color = "#00D1B2"  # Verde Neon
+            cor_da_borda = "#00D1B2"  # Verde Neon / Teal
+            texto_status = "🟢 Excelente! Seu nível de gastos está saudável e dentro do planejado."
         elif porcentagem < 85:
-            bar_color = "#F39C12"  # Laranja
+            cor_da_borda = "#F39C12"  # Laranja
+            texto_status = "🟡 Atenção: Seus gastos atingiram um nível moderado. Monitore suas próximas saídas."
         else:
-            bar_color = "#E74C3C"  # Vermelho
+            cor_da_borda = "#E74C3C"  # Vermelho
+            texto_status = "🔴 Alerta: Orçamento crítico! As despesas comprometeram quase a totalidade da sua receita."
 
-        # 3. Renderização da barra com conteúdo interno para evitar o bloqueio do Streamlit
-        st.markdown(f'''
+    # Renderização da barra com conteúdo interno para evitar o bloqueio do Streamlit
+    st.markdown(f'''
+        <div style="
+            width: 100% !important;
+            background-color: #1A1F2C !important;
+            border: 1px solid #2D3748 !important;
+            border-radius: 20px !important;
+            height: 20px !important;
+            margin-top: 15px !important;
+            margin-bottom: 10px !important;
+            overflow: hidden !important;
+            display: block !important;
+        ">
             <div style="
-                width: 100% !important;
-                background-color: #1A1F2C !important;
-                border: 1px solid #2D3748 !important;
-                border-radius: 20px !important;
+                width: {max(porcentagem_barra, 3.0)}% !important; 
+                background-color: {cor_da_borda} !important;
+                background: {cor_da_borda} !important;
                 height: 20px !important;
-                margin-top: 15px !important;
-                margin-bottom: 10px !important;
-                overflow: hidden !important;
+                border-radius: 20px !important;
                 display: block !important;
-            ">
-                <div style="
-                    width: {max(porcentagem_barra, 3.0)}% !important; 
-                    background-color: {bar_color} !important;
-                    background: {bar_color} !important;
-                    height: 20px !important;
-                    border-radius: 20px !important;
-                    display: block !important;
-                ">&nbsp;</div>
+            ">&nbsp;</div>
+        </div>
+    ''', unsafe_allow_html=True)
+    
+    # Card de Status Financeiro moderno e integrado
+    st.markdown(f'''
+        <div style="
+            background-color: #1A1F2C !important;
+            border: 1px solid {cor_da_borda} !important;
+            padding: 16px !important;
+            border-radius: 12px !important;
+            margin-top: 15px !important;
+            margin-bottom: 25px !important;
+        ">
+            <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 10px;">
+                <span style="color: #FFFFFF !important; font-size: 14px; font-weight: 500;">{texto_status}</span>
+                <span style="color: #A0AEC0 !important; font-size: 13px;">
+                    Consumido: <strong style="color: {cor_da_borda} !important;">R$ {total_gastos:.2f}</strong> de R$ {renda_atual:.2f} ({porcentagem:.1f}%)
+                </span>
             </div>
-            <p style="text-align: right; color: #A0AEC0; font-size: 13px; margin-top: 5px;">
-                Você já comprometeu <strong>{porcentagem:.1f}%</strong> da sua receita disponível (R$ {total_gastos:,.2f} de R$ {renda_atual:,.2f}).
-            </p>
-        ''', unsafe_allow_html=True)
-        
-        if porcentagem < 50:
-            status_msg = f"✅ **Excelente!** Nível de comprometimento saudável ({porcentagem:.1f}% da receita utilizada)."
-            st.success(status_msg)
-        elif porcentagem < 85:
-            status_msg = f"⚠️ **Alerta moderado.** Você comprometeu {porcentagem:.1f}% da sua receita (R$ {total_gastos:,.2f} de R$ {renda_atual:,.2f}). Recomenda-se cautela com novos gastos."
-            st.warning(status_msg)
-        else:
-            status_msg = f"🚨 **Receita altamente comprometida!** Suas despesas excederam ou atingiram o limite crítico (R$ {total_gastos:,.2f} de R$ {renda_atual:,.2f}, totalizando {porcentagem:.1f}% da receita utilizada)."
-            st.error(status_msg)
-            
-        st.markdown("---")
+        </div>
+    ''', unsafe_allow_html=True)
+    
+    st.markdown("---")
 
     col_form, col_list = st.columns([1, 2])
 
