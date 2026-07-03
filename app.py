@@ -298,36 +298,42 @@ if os.path.exists(ARQUIVO_CONFIG):
         pass
 
 st.markdown('''
-    <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@700&family=Syne:wght@800&display=swap" rel="stylesheet">
+    <style>
+        /* Importação direta de fontes premium */
+        @import url("https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@700&family=Syne:wght@800&display=swap");
 
-    <div style="padding: 25px 0px 15px 0px; margin-bottom: 25px; border-bottom: 1px solid rgba(255,255,255,0.05);">
-        <h1 style="
-            font-family: 'Syne', 'Space Grotesk', sans-serif !important;
-            font-size: 72px !important;
+        /* Forçando o título principal a ficar gigante e moderno */
+        .logo-container {
+            padding: 30px 0px 10px 0px !important;
+            margin-bottom: 25px !important;
+            border-bottom: 1px solid rgba(255,255,255,0.08) !important;
+        }
+        .main-logo {
+            font-family: "Syne", "Space Grotesk", sans-serif !important;
+            font-size: 76px !important;
             font-weight: 800 !important;
-            letter-spacing: -3.5px !important;
-            line-height: 0.95 !important;
+            letter-spacing: -4px !important;
+            line-height: 0.9 !important;
             margin: 0px !important;
-            background: linear-gradient(135deg, #FFFFFF 30%, #00E5FF 100%) !important;
+            background: linear-gradient(135deg, #FFFFFF 40%, #00E5FF 100%) !important;
             -webkit-background-clip: text !important;
             -webkit-text-fill-color: transparent !important;
-            filter: drop-shadow(0px 4px 12px rgba(0,229,255,0.25)) !important;
-        ">
-            Finflow
-        </h1>
-        <p style="
-            font-family: 'Space Grotesk', sans-serif !important;
+            display: block !important;
+        }
+        .sub-logo {
+            font-family: "Space Grotesk", sans-serif !important;
             color: #A0AEC0 !important;
             font-size: 13px !important;
-            letter-spacing: 1px !important;
+            letter-spacing: 1.5px !important;
             text-transform: uppercase !important;
-            margin-top: 12px !important;
+            margin-top: 14px !important;
             opacity: 0.7 !important;
-        ">
-            Gestão Inteligente de Capital • Painel Premium
-        </p>
+        }
+    </style>
+
+    <div class="logo-container">
+        <h1 class="main-logo">Finflow</h1>
+        <p class="sub-logo">Gestão Inteligente de Capital • Painel Premium</p>
     </div>
 ''', unsafe_allow_html=True)
 
