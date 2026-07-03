@@ -299,41 +299,39 @@ if os.path.exists(ARQUIVO_CONFIG):
 
 st.markdown('''
     <style>
-        /* Importação direta de fontes premium */
-        @import url("https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@700&family=Syne:wght@800&display=swap");
+        /* Importação de uma fonte geométrica ultra fina e moderna */
+        @import url("https://fonts.googleapis.com/css2?family=Inter:wght@200;300;400&display=swap");
 
-        /* Forçando o título principal a ficar gigante e moderno */
-        .logo-container {
-            padding: 30px 0px 10px 0px !important;
-            margin-bottom: 25px !important;
-            border-bottom: 1px solid rgba(255,255,255,0.08) !important;
+        .brand-container {
+            display: flex !important;
+            align-items: center !important;
+            padding: 20px 0px 10px 0px !important;
+            margin-bottom: 30px !important;
+            gap: 15px !important;
         }
-        .main-logo {
-            font-family: "Syne", "Space Grotesk", sans-serif !important;
-            font-size: 76px !important;
-            font-weight: 800 !important;
-            letter-spacing: -4px !important;
-            line-height: 0.9 !important;
+        .brand-text {
+            font-family: "Inter", sans-serif !important;
+            font-size: 68px !important;
+            font-weight: 300 !important; /* Linhas finas e elegantes */
+            letter-spacing: -1.5px !important;
             margin: 0px !important;
-            background: linear-gradient(135deg, #FFFFFF 40%, #00E5FF 100%) !important;
+            line-height: 1 !important;
+            color: #00E5FF !important; /* Ciano/Teal brilhante */
+        }
+        .brand-icon {
+            font-size: 62px !important;
+            line-height: 1 !important;
+            display: inline-block !important;
+            /* Gradiente no emoji de raio (Laranja para Vermelho) */
+            background: linear-gradient(135deg, #FF9100 0%, #FF3D00 100%) !important;
             -webkit-background-clip: text !important;
             -webkit-text-fill-color: transparent !important;
-            display: block !important;
-        }
-        .sub-logo {
-            font-family: "Space Grotesk", sans-serif !important;
-            color: #A0AEC0 !important;
-            font-size: 13px !important;
-            letter-spacing: 1.5px !important;
-            text-transform: uppercase !important;
-            margin-top: 14px !important;
-            opacity: 0.7 !important;
         }
     </style>
 
-    <div class="logo-container">
-        <h1 class="main-logo">Finflow</h1>
-        <p class="sub-logo">Gestão Inteligente de Capital • Painel Premium</p>
+    <div class="brand-container">
+        <h1 class="brand-text">Finflow</h1>
+        <span class="brand-icon">⚡</span>
     </div>
 ''', unsafe_allow_html=True)
 
