@@ -298,19 +298,34 @@ if os.path.exists(ARQUIVO_CONFIG):
         pass
 
 st.markdown('''
-    <div style="padding: 20px 0px 10px 0px; margin-bottom: 20px;">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@700&family=Syne:wght@800&display=swap" rel="stylesheet">
+
+    <div style="padding: 25px 0px 15px 0px; margin-bottom: 25px; border-bottom: 1px solid rgba(255,255,255,0.05);">
         <h1 style="
-            font-family: 'Inter', 'Source Sans Pro', sans-serif !important; 
-            font-size: 56px !important; 
-            font-weight: 800 !important; 
-            letter-spacing: -2px !important; 
-            color: #FFFFFF !important; 
+            font-family: 'Syne', 'Space Grotesk', sans-serif !important;
+            font-size: 72px !important;
+            font-weight: 800 !important;
+            letter-spacing: -3.5px !important;
+            line-height: 0.95 !important;
             margin: 0px !important;
-            line-height: 1.1 !important;
+            background: linear-gradient(135deg, #FFFFFF 30%, #00E5FF 100%) !important;
+            -webkit-background-clip: text !important;
+            -webkit-text-fill-color: transparent !important;
+            filter: drop-shadow(0px 4px 12px rgba(0,229,255,0.25)) !important;
         ">
-            Fin<span style="color: #00D1B2 !important; font-weight: 300 !important; text-shadow: 0px 0px 20px rgba(0,209,178,0.4);">flow</span>
+            Finflow
         </h1>
-        <p style="color: #A0AEC0 !important; font-size: 14px !important; margin-top: 8px !important; opacity: 0.8 !important;">
+        <p style="
+            font-family: 'Space Grotesk', sans-serif !important;
+            color: #A0AEC0 !important;
+            font-size: 13px !important;
+            letter-spacing: 1px !important;
+            text-transform: uppercase !important;
+            margin-top: 12px !important;
+            opacity: 0.7 !important;
+        ">
             Gestão Inteligente de Capital • Painel Premium
         </p>
     </div>
