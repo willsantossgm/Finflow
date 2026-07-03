@@ -1,10 +1,14 @@
 import os
 from datetime import date, timedelta
 import json
+import re
 import streamlit as st
 import pandas as pd
 import altair as alt
 import requests
+
+# Regex simples e padrão de mercado para validação de e-mail
+EMAIL_REGEX = re.compile(r"^[^@\s]+@[^@\s]+\.[^@\s]+$")
 
 # Importando a classe do nosso backend
 from backend.financas import GerenciadorFinancas
@@ -138,36 +142,43 @@ if not st.session_state.authenticated:
     if auth_option == "Entrar (Login)":
         if st.button("Acessar Conta 🔑", use_container_width=True):
             if email and senha:
-                with st.spinner("Conectando ao Clerk..."):
-                    res = supabase_login(email, senha)
-                    if res is not None and res.status_code == 200:
-                        data = res.json()
-                        st.session_state.authenticated = True
-                        st.session_state.clerk_user_id = f"user_{data['user']['id']}"
-                        st.session_state.user_email = email
-                        st.success("Autenticado com sucesso!")
-                        st.rerun()
-                    else:
-                        error_detail = None
-                        if res is not None:
-                            try:
-                                json_res = res.json()
-                                error_detail = json_res.get("error_description") or json_res.get("message") or json_res.get("msg") or json_res.get("error")
-                            except Exception:
-                                pass
-                        if not error_detail:
-                            error_detail = "Senha incorreta ou e-mail inválido."
-                        st.error(f"Erro no Login: {error_detail}")
+                email_clean = email.strip().lower()
+                if not EMAIL_REGEX.match(email_clean):
+                    st.error("Por favor, digite um formato de e-mail válido (ex: nome@provedor.com).")
+                else:
+                    with st.spinner("Conectando ao Clerk..."):
+                        res = supabase_login(email_clean, senha)
+                        if res is not None and res.status_code == 200:
+                            data = res.json()
+                            st.session_state.authenticated = True
+                            st.session_state.clerk_user_id = f"user_{data['user']['id']}"
+                            st.session_state.user_email = email_clean
+                            st.success("Autenticado com sucesso!")
+                            st.rerun()
+                        else:
+                            error_detail = None
+                            if res is not None:
+                                try:
+                                    json_res = res.json()
+                                    error_detail = json_res.get("error_description") or json_res.get("message") or json_res.get("msg") or json_res.get("error")
+                                except Exception:
+                                    pass
+                            if not error_detail:
+                                error_detail = "Senha incorreta ou e-mail inválido."
+                            st.error(f"Erro no Login: {error_detail}")
             else:
                 st.error("Preencha todos os campos!")
     else:
         if st.button("Criar Conta Nova 🚀", use_container_width=True):
             if email and senha:
-                if len(senha) < 6:
+                email_clean = email.strip().lower()
+                if not EMAIL_REGEX.match(email_clean):
+                    st.error("Por favor, digite um formato de e-mail válido (ex: nome@provedor.com).")
+                elif len(senha) < 6:
                     st.error("A senha deve ter no mínimo 6 caracteres.")
                 else:
                     with st.spinner("Cadastrando no Clerk..."):
-                        res = supabase_signup(email, senha)
+                        res = supabase_signup(email_clean, senha)
                         if res is not None and res.status_code in [200, 201]:
                             st.success("Cadastro efetuado! Se necessário, verifique sua caixa de e-mail e faça login.")
                         else:
