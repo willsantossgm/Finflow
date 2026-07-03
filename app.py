@@ -297,13 +297,24 @@ if os.path.exists(ARQUIVO_CONFIG):
     except Exception:
         pass
 
-# Cabeçalho da aplicação (Usuário Logado) estilo elite
-st.markdown(f"""
-    <div class="header-elite">
-        <h1 class="header-title">Fin<span>flow</span> ⚡</h1>
-        <div class="header-subtitle">Gestão Inteligente de Capital • Painel Premium • Logado como: <b>{st.session_state.user_email}</b></div>
+st.markdown('''
+    <div style="padding: 20px 0px 10px 0px; margin-bottom: 20px;">
+        <h1 style="
+            font-family: 'Inter', 'Source Sans Pro', sans-serif !important; 
+            font-size: 56px !important; 
+            font-weight: 800 !important; 
+            letter-spacing: -2px !important; 
+            color: #FFFFFF !important; 
+            margin: 0px !important;
+            line-height: 1.1 !important;
+        ">
+            Fin<span style="color: #00D1B2 !important; font-weight: 300 !important; text-shadow: 0px 0px 20px rgba(0,209,178,0.4);">flow</span>
+        </h1>
+        <p style="color: #A0AEC0 !important; font-size: 14px !important; margin-top: 8px !important; opacity: 0.8 !important;">
+            Gestão Inteligente de Capital • Painel Premium
+        </p>
     </div>
-""", unsafe_allow_html=True)
+''', unsafe_allow_html=True)
 
 # ----------------- BARRA LATERAL (SIDEBAR) -----------------
 st.sidebar.markdown("### 👤 Perfil & Autenticação")
