@@ -166,6 +166,90 @@ st.markdown("""
         color: #ef4444;
         margin-top: 0.5rem;
     }
+
+    /* Dashboard — Saudação */
+    .dash-greeting {
+        font-family: 'Inter', sans-serif;
+        font-size: 22px;
+        font-weight: 300;
+        color: #a0aec0;
+        margin-bottom: 1.5rem;
+    }
+    .dash-greeting strong {
+        color: #ffffff;
+        font-weight: 600;
+    }
+
+    /* Dashboard — Barra de Comprometimento */
+    .commitment-bar-outer {
+        width: 100%;
+        background-color: #1A1F2C;
+        border: 1px solid #2D3748;
+        border-radius: 20px;
+        height: 20px;
+        margin-top: 12px;
+        margin-bottom: 8px;
+        overflow: hidden;
+        display: block;
+    }
+    .commitment-bar-inner {
+        height: 20px;
+        border-radius: 20px;
+        display: block;
+        transition: width 0.5s ease;
+    }
+
+    /* Dashboard — Status Card */
+    .status-card {
+        background-color: #1A1F2C;
+        padding: 16px;
+        border-radius: 12px;
+        margin-top: 12px;
+        margin-bottom: 20px;
+    }
+    .status-card .status-row {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        flex-wrap: wrap;
+        gap: 10px;
+    }
+
+    /* Dashboard — Top Categorias */
+    .top-cat-item {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        padding: 10px 14px;
+        background-color: #1A1F2C;
+        border: 1px solid #2D3748;
+        border-radius: 10px;
+        margin-bottom: 8px;
+    }
+    .top-cat-name {
+        font-family: 'Inter', sans-serif;
+        font-size: 14px;
+        color: #E2E8F0;
+        font-weight: 500;
+    }
+    .top-cat-value {
+        font-family: 'Outfit', sans-serif;
+        font-size: 15px;
+        color: #ef4444;
+        font-weight: 600;
+    }
+
+    /* Footer Premium */
+    .finflow-footer {
+        text-align: center;
+        padding: 2rem 0 1rem 0;
+        margin-top: 3rem;
+        border-top: 1px solid #2D3748;
+        color: #4A5568;
+        font-family: 'Inter', sans-serif;
+        font-size: 12px;
+        letter-spacing: 0.5px;
+    }
 """, unsafe_allow_html=True)
 
 # Definição dos caminhos dos arquivos de dados e config locais
@@ -190,6 +274,13 @@ if "supabase" not in st.session_state:
     from backend.financas import SUPABASE_URL, SUPABASE_KEY, create_client
     st.session_state.supabase = create_client(SUPABASE_URL, SUPABASE_KEY)
 supabase = st.session_state.supabase
+
+# Garantir que a autorização JWT do usuário logado seja enviada em cada rerun de página
+if st.session_state.get("authenticated") and st.session_state.get("user_access_token"):
+    try:
+        supabase.postgrest.auth(st.session_state.user_access_token)
+    except Exception:
+        pass
 
 if "authenticated" not in st.session_state:
     st.session_state.authenticated = False
@@ -404,11 +495,11 @@ st.sidebar.markdown("---")
 st.sidebar.markdown("### 🧭 Navegação")
 pagina_selecionada = st.sidebar.radio(
     "Ir para:",
-    options=["💸 Controle de Despesas", "💰 Gestão de Receitas", "📊 Comparação Geral"]
+    options=["🏠 Dashboard", "💸 Controle de Despesas", "💰 Gestão de Receitas", "📊 Comparação Geral"]
 )
 
 # Renderiza filtro de referência e carrega dados base de acordo com a seleção
-if pagina_selecionada != "📊 Comparação Geral":
+if pagina_selecionada not in ["📊 Comparação Geral"]:
     st.sidebar.markdown("---")
     st.sidebar.markdown("### 📅 Filtro de Referência")
     meses_disponiveis = st.session_state.gerenciador.obter_meses_disponiveis()
@@ -440,7 +531,7 @@ if pagina_selecionada != "📊 Comparação Geral":
 
 # ----------------- RENDERIZAÇÃO DA PÁGINA SELECIONADA -----------------
 
-if pagina_selecionada in ["💸 Controle de Despesas", "💰 Gestão de Receitas"]:
+if pagina_selecionada in ["🏠 Dashboard", "💸 Controle de Despesas", "💰 Gestão de Receitas"]:
     # ----------------- GRID DE KPIs ESTILO DASHBOARD -----------------
     kpi_html = f"""
     <div class="kpi-container">
@@ -463,7 +554,148 @@ if pagina_selecionada in ["💸 Controle de Despesas", "💰 Gestão de Receitas
 
 # RENDERIZAÇÃO ESPECÍFICA DE CADA MENU
 
-if pagina_selecionada == "💸 Controle de Despesas":
+if pagina_selecionada == "🏠 Dashboard":
+    # ----------------- PÁGINA DO DASHBOARD HOME -----------------
+    
+    # Saudação dinâmica baseada na hora do dia
+    from datetime import datetime
+    hora_atual = datetime.now().hour
+    if hora_atual < 12:
+        saudacao = "Bom dia"
+    elif hora_atual < 18:
+        saudacao = "Boa tarde"
+    else:
+        saudacao = "Boa noite"
+    
+    user_display = st.session_state.user_email.split("@")[0].capitalize() if st.session_state.user_email else "Usuário"
+    
+    st.markdown(f'<div class="dash-greeting">{saudacao}, <strong>{user_display}</strong>! 👋</div>', unsafe_allow_html=True)
+    
+    # --- Barra de Comprometimento da Receita ---
+    st.markdown(f"### 🎯 Saúde Financeira ({mes_filtro})")
+    
+    # Lógica de comprometimento
+    if renda_atual == 0 and total_gastos == 0:
+        porcentagem = 0.0
+        porcentagem_barra = 3.0
+        cor_barra = "#2D3748"
+        texto_status = "ℹ️ Nenhum lançamento registrado para este mês ainda. Comece adicionando seus ganhos ou gastos!"
+    else:
+        if renda_atual == 0 and total_gastos > 0:
+            porcentagem = 100.0
+        else:
+            porcentagem = (total_gastos / renda_atual) * 100
+        
+        porcentagem_barra = min(porcentagem, 100.0)
+        
+        if porcentagem < 50:
+            cor_barra = "#00D1B2"
+            texto_status = "🟢 Excelente! Seu nível de gastos está saudável e dentro do planejado."
+        elif porcentagem < 85:
+            cor_barra = "#F39C12"
+            texto_status = "🟡 Atenção: Seus gastos atingiram um nível moderado. Monitore suas próximas saídas."
+        else:
+            cor_barra = "#E74C3C"
+            texto_status = "🔴 Alerta: Orçamento crítico! As despesas comprometeram quase a totalidade da sua receita."
+    
+    # Barra de progresso
+    st.markdown(f'''
+        <div class="commitment-bar-outer">
+            <div class="commitment-bar-inner" style="width: {max(porcentagem_barra, 3.0)}%; background-color: {cor_barra};">&nbsp;</div>
+        </div>
+    ''', unsafe_allow_html=True)
+    
+    # Card de status
+    st.markdown(f'''
+        <div class="status-card" style="border: 1px solid {cor_barra};">
+            <div class="status-row">
+                <span style="color: #FFFFFF; font-size: 14px; font-weight: 500;">{texto_status}</span>
+                <span style="color: #A0AEC0; font-size: 13px;">
+                    Consumido: <strong style="color: {cor_barra};">R$ {total_gastos:.2f}</strong> de R$ {renda_atual:.2f} ({porcentagem:.1f}%)
+                </span>
+            </div>
+        </div>
+    ''', unsafe_allow_html=True)
+    
+    st.markdown("---")
+    
+    # --- Top Categorias e Mini Gráfico lado a lado ---
+    col_top, col_trend = st.columns([1, 1])
+    
+    with col_top:
+        st.markdown(f"### 🏷️ Top Categorias ({mes_filtro})")
+        
+        # Agrupa gastos por categoria no mês filtrado
+        resumo_cat_dash = {}
+        for g in gastos_filtrados:
+            cat = g.categoria.strip().capitalize()
+            resumo_cat_dash[cat] = resumo_cat_dash.get(cat, 0.0) + g.valor
+        
+        if resumo_cat_dash:
+            # Ordena por valor (maior primeiro) e pega top 5
+            top_cats = sorted(resumo_cat_dash.items(), key=lambda x: x[1], reverse=True)[:5]
+            
+            # Mapa de ícones por categoria
+            ICONES_CAT = {
+                "Alimentação": "🍔", "Moradia": "🏠", "Transporte": "🚗",
+                "Lazer": "🎮", "Saúde": "💊", "Educação": "📚",
+                "Vestuário": "👕", "Tecnologia": "💻", "Presentes": "🎁",
+                "Receita": "💰", "Assinatura": "📱", "Investimento": "📈"
+            }
+            
+            for cat, val in top_cats:
+                icone = ICONES_CAT.get(cat, "📌")
+                st.markdown(f'''
+                    <div class="top-cat-item">
+                        <span class="top-cat-name">{icone} {cat}</span>
+                        <span class="top-cat-value">R$ {val:,.2f}</span>
+                    </div>
+                ''', unsafe_allow_html=True)
+        else:
+            st.info("Nenhuma despesa cadastrada neste mês.")
+    
+    with col_trend:
+        st.markdown("### 📈 Tendência de Gastos")
+        
+        # Calcula gastos dos últimos 3 meses
+        from datetime import date as dt_date
+        hoje = dt_date.today()
+        
+        NOMES_MESES_CURTO = {
+            1: "Jan", 2: "Fev", 3: "Mar", 4: "Abr", 5: "Mai", 6: "Jun",
+            7: "Jul", 8: "Ago", 9: "Set", 10: "Out", 11: "Nov", 12: "Dez"
+        }
+        
+        meses_trend = []
+        for i in range(2, -1, -1):
+            m = hoje.month - i
+            a = hoje.year
+            while m <= 0:
+                m += 12
+                a -= 1
+            chave = f"{m:02d}/{a}"
+            transacoes_m = st.session_state.gerenciador.filtrar_por_mes_ano(chave)
+            total_m = sum(t.valor for t in transacoes_m if t.categoria != "Receita")
+            meses_trend.append({
+                "Mês": f"{NOMES_MESES_CURTO[m]}/{str(a)[-2:]}",
+                "Total (R$)": total_m
+            })
+        
+        df_trend = pd.DataFrame(meses_trend)
+        
+        chart_trend = alt.Chart(df_trend).mark_bar(
+            cornerRadiusTopLeft=6,
+            cornerRadiusTopRight=6,
+            color="#0d9488"
+        ).encode(
+            x=alt.X("Mês:N", sort=None, title="Mês"),
+            y=alt.Y("Total (R$):Q", title="Total Gasto (R$)"),
+            tooltip=["Mês", alt.Tooltip("Total (R$)", format="$,.2f")]
+        ).properties(height=280)
+        
+        st.altair_chart(chart_trend, use_container_width=True)
+
+elif pagina_selecionada == "💸 Controle de Despesas":
     # ----------------- PÁGINA DE DESPESAS -----------------
     st.markdown(f"### 💸 Controle de Despesas ({mes_filtro})")
     
