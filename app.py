@@ -915,34 +915,68 @@ elif pagina_selecionada == "💸 Controle de Despesas":
 
         st.markdown("---")
 
-        # Exclusão de Despesas
-        st.markdown("### 🗑️ Excluir Despesa")
+        # Gerenciar Despesas (Editar / Excluir)
+        st.markdown("### ⚙️ Gerenciar Despesa")
         if len(gastos_filtrados) == 0:
-            st.info("Nenhuma despesa disponível para exclusão.")
+            st.info("Nenhuma despesa disponível para gerenciar.")
         else:
-            opcoes_exclusao_gastos = {
+            opcoes_gastos = {
                 g.id: f"{g.descricao} (R$ {g.valor:.2f} - {g.data.strftime('%d/%m/%Y')})"
                 for g in gastos_filtrados
             }
             
             gasto_selecionado_id = st.selectbox(
-                "Selecione uma despesa para excluir:",
-                options=list(opcoes_exclusao_gastos.keys()),
-                format_func=lambda x: opcoes_exclusao_gastos[x],
-                key="gasto_excluir_select"
+                "Selecione uma despesa:",
+                options=list(opcoes_gastos.keys()),
+                format_func=lambda x: opcoes_gastos[x],
+                key="gasto_gerenciar_select"
             )
             
-            if st.button("Excluir Despesa 🗑️", use_container_width=True):
-                if gasto_selecionado_id:
-                    if st.session_state.gerenciador.remover_gasto(gasto_selecionado_id):
-                        try:
-                            st.session_state.gerenciador.salvar_dados(ARQUIVO_DADOS)
-                            st.success("Despesa excluída com sucesso!")
-                            st.rerun()
-                        except Exception as e:
-                            st.error(f"Erro ao salvar dados após exclusão: {e}")
-                    else:
-                        st.error("Erro interno ao tentar remover a despesa.")
+            acao_despesa = st.radio("Ação:", ["✏️ Editar", "🗑️ Excluir"], horizontal=True, key="acao_despesa")
+            
+            if acao_despesa == "✏️ Editar":
+                # Busca o gasto selecionado
+                gasto_edit = next((g for g in gastos_filtrados if g.id == gasto_selecionado_id), None)
+                if gasto_edit:
+                    edit_desc = st.text_input("Descrição", value=gasto_edit.descricao, key="edit_desp_desc")
+                    edit_val = st.number_input("Valor (R$)", min_value=0.01, value=gasto_edit.valor, step=5.0, format="%.2f", key="edit_desp_val")
+                    
+                    # Dropdown de categorias para edição
+                    cats_edit = st.session_state.categorias
+                    try:
+                        cat_idx = cats_edit.index(gasto_edit.categoria)
+                    except ValueError:
+                        cat_idx = 0
+                    edit_cat = st.selectbox("Categoria", options=cats_edit, index=cat_idx, key="edit_desp_cat")
+                    edit_data = st.date_input("Data", value=gasto_edit.data, key="edit_desp_data")
+                    
+                    if st.button("💾 Salvar Alterações", use_container_width=True, key="btn_edit_desp"):
+                        if edit_desc.strip() and edit_val > 0:
+                            if st.session_state.gerenciador.editar_gasto(gasto_selecionado_id, edit_desc, edit_val, edit_cat, edit_data):
+                                st.session_state.gerenciador.salvar_dados(ARQUIVO_DADOS)
+                                st.success("Despesa atualizada com sucesso!")
+                                st.rerun()
+                            else:
+                                st.error("Erro ao atualizar a despesa.")
+                        else:
+                            st.error("Preencha todos os campos corretamente.")
+            
+            else:  # Excluir
+                gasto_excl = next((g for g in gastos_filtrados if g.id == gasto_selecionado_id), None)
+                if gasto_excl:
+                    st.warning(f"⚠️ Você está prestes a excluir: **{gasto_excl.descricao}** — R$ {gasto_excl.valor:.2f} ({gasto_excl.data.strftime('%d/%m/%Y')})")
+                    confirma = st.checkbox("Confirmo que desejo excluir esta despesa", key="confirma_excl_desp")
+                    
+                    if st.button("🗑️ Excluir Definitivamente", use_container_width=True, key="btn_excl_desp"):
+                        if confirma:
+                            if st.session_state.gerenciador.remover_gasto(gasto_selecionado_id):
+                                st.session_state.gerenciador.salvar_dados(ARQUIVO_DADOS)
+                                st.success("Despesa excluída com sucesso!")
+                                st.rerun()
+                            else:
+                                st.error("Erro ao excluir a despesa.")
+                        else:
+                            st.error("Marque a confirmação antes de excluir.")
 
         st.markdown("---")
 
@@ -1071,34 +1105,59 @@ elif pagina_selecionada == "💰 Gestão de Receitas":
 
         st.markdown("---")
 
-        # Exclusão de Receitas
-        st.markdown("### 🗑️ Excluir Receita")
+        # Gerenciar Receitas (Editar / Excluir)
+        st.markdown("### ⚙️ Gerenciar Receita")
         if len(receitas_filtradas) == 0:
-            st.info("Nenhuma receita disponível para exclusão.")
+            st.info("Nenhuma receita disponível para gerenciar.")
         else:
-            opcoes_exclusao_receitas = {
+            opcoes_receitas = {
                 r.id: f"{r.descricao} (R$ {r.valor:.2f} - {r.data.strftime('%d/%m/%Y')})"
                 for r in receitas_filtradas
             }
             
             receita_selecionada_id = st.selectbox(
-                "Selecione uma receita para excluir:",
-                options=list(opcoes_exclusao_receitas.keys()),
-                format_func=lambda x: opcoes_exclusao_receitas[x],
-                key="receita_excluir_select"
+                "Selecione uma receita:",
+                options=list(opcoes_receitas.keys()),
+                format_func=lambda x: opcoes_receitas[x],
+                key="receita_gerenciar_select"
             )
             
-            if st.button("Excluir Receita 🗑️", use_container_width=True):
-                if receita_selecionada_id:
-                    if st.session_state.gerenciador.remover_gasto(receita_selecionada_id):
-                        try:
-                            st.session_state.gerenciador.salvar_dados(ARQUIVO_DADOS)
-                            st.success("Receita excluída com sucesso!")
-                            st.rerun()
-                        except Exception as e:
-                            st.error(f"Erro ao salvar dados após exclusão: {e}")
-                    else:
-                        st.error("Erro interno ao tentar remover a receita.")
+            acao_receita = st.radio("Ação:", ["✏️ Editar", "🗑️ Excluir"], horizontal=True, key="acao_receita")
+            
+            if acao_receita == "✏️ Editar":
+                rec_edit = next((r for r in receitas_filtradas if r.id == receita_selecionada_id), None)
+                if rec_edit:
+                    edit_desc_rec = st.text_input("Descrição", value=rec_edit.descricao, key="edit_rec_desc")
+                    edit_val_rec = st.number_input("Valor (R$)", min_value=0.01, value=rec_edit.valor, step=50.0, format="%.2f", key="edit_rec_val")
+                    edit_data_rec = st.date_input("Data", value=rec_edit.data, key="edit_rec_data")
+                    
+                    if st.button("💾 Salvar Alterações", use_container_width=True, key="btn_edit_rec"):
+                        if edit_desc_rec.strip() and edit_val_rec > 0:
+                            if st.session_state.gerenciador.editar_gasto(receita_selecionada_id, edit_desc_rec, edit_val_rec, "Receita", edit_data_rec):
+                                st.session_state.gerenciador.salvar_dados(ARQUIVO_DADOS)
+                                st.success("Receita atualizada com sucesso!")
+                                st.rerun()
+                            else:
+                                st.error("Erro ao atualizar a receita.")
+                        else:
+                            st.error("Preencha todos os campos corretamente.")
+            
+            else:  # Excluir
+                rec_excl = next((r for r in receitas_filtradas if r.id == receita_selecionada_id), None)
+                if rec_excl:
+                    st.warning(f"⚠️ Você está prestes a excluir: **{rec_excl.descricao}** — R$ {rec_excl.valor:.2f} ({rec_excl.data.strftime('%d/%m/%Y')})")
+                    confirma_rec = st.checkbox("Confirmo que desejo excluir esta receita", key="confirma_excl_rec")
+                    
+                    if st.button("🗑️ Excluir Definitivamente", use_container_width=True, key="btn_excl_rec"):
+                        if confirma_rec:
+                            if st.session_state.gerenciador.remover_gasto(receita_selecionada_id):
+                                st.session_state.gerenciador.salvar_dados(ARQUIVO_DADOS)
+                                st.success("Receita excluída com sucesso!")
+                                st.rerun()
+                            else:
+                                st.error("Erro ao excluir a receita.")
+                        else:
+                            st.error("Marque a confirmação antes de excluir.")
 
 else: # pagina_selecionada == "📊 Comparação Geral"
     # ----------------- PÁGINA DE COMPARAÇÃO GERAL (ANUAL) -----------------

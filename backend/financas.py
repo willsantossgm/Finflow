@@ -157,6 +157,36 @@ class GerenciadorFinancas:
         self.gastos = [gasto for gasto in self.gastos if gasto.id != id_gasto]
         return len(self.gastos) < original_len
 
+    def editar_gasto(self, id_gasto: str, descricao: str, valor: float, categoria: str, data_lancamento: date) -> bool:
+        """
+        Atualiza um lançamento existente no Supabase e na memória local.
+        """
+        novos_dados = {
+            "descricao": descricao,
+            "valor": float(valor),
+            "categoria": categoria,
+            "data": str(data_lancamento)
+        }
+        
+        # Atualiza no Supabase
+        if self.user_id:
+            try:
+                self.supabase.table("gastos").update(novos_dados).eq("id", id_gasto).eq("user_id", self.user_id).execute()
+            except Exception as e:
+                print(f"Erro ao editar no Supabase: {e}")
+                return False
+        
+        # Atualiza na memória local
+        for gasto in self.gastos:
+            if gasto.id == id_gasto:
+                gasto.descricao = descricao
+                gasto.valor = valor
+                gasto.categoria = categoria
+                gasto.data = data_lancamento
+                return True
+        
+        return False
+
     def obter_meses_disponiveis(self) -> List[str]:
         """
         Retorna uma lista ordenada de strings 'MM/AAAA' correspondentes aos meses
