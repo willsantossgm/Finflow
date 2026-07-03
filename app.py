@@ -474,29 +474,26 @@ if pagina_selecionada == "💸 Controle de Despesas":
     # 1. Regra para conta totalmente zerada ou sem lançamentos no mês
     if renda_atual == 0 and total_gastos == 0:
         porcentagem = 0.0
-        porcentagem_barra = 0.0
         bar_color = "#2D3748" # Cor neutra
         st.markdown(f'''
             <div style="
-                width: 100% !important; 
-                background-color: #111622 !important; 
-                border: 1px solid #2D3748 !important; 
-                border-radius: 50px !important; 
-                height: 18px !important; 
-                margin-top: 12px !important; 
-                margin-bottom: 8px !important;
-                overflow: hidden !important;
+                width: 100% !important;
+                background-color: #1A1F2C !important;
+                border: 1px solid #2D3748 !important;
+                border-radius: 10px !important;
+                padding: 4px !important;
+                margin-top: 15px !important;
+                margin-bottom: 5px !important;
                 display: block !important;
             ">
                 <div style="
-                    width: {porcentagem_barra}% !important; 
-                    height: 100% !important; 
-                    background: {bar_color} !important; 
-                    background-color: {bar_color} !important; 
-                    border-radius: 50px !important;
-                    box-shadow: 0px 0px 10px {bar_color}80 !important; /* Efeito Glow sutil */
-                    transition: width 0.6s ease-in-out !important;
-                    display: block !important;
+                    width: 2.0% !important; 
+                    background-color: {bar_color} !important;
+                    background: {bar_color} !important;
+                    height: 16px !important;
+                    border-radius: 8px !important;
+                    box-shadow: 0px 0px 12px {bar_color} !important;
+                    transition: width 0.5s ease-in-out !important;
                 "></div>
             </div>
             <p style="text-align: right; color: #A0AEC0; font-size: 13px; margin-top: 5px;">
@@ -514,42 +511,40 @@ if pagina_selecionada == "💸 Controle de Despesas":
             
         porcentagem_barra = min(porcentagem, 100.0)
         
-        # 2. Lógica de Cores da Barra (Defina antes do HTML)
+        # 2. Definição estrita das cores dinâmicas
         if porcentagem < 50:
-            bar_color = "#00D1B2" # Verde Neon
+            bar_color = "#00D1B2"  # Verde Neon / Teal
             status_msg = f"✅ **Excelente!** Nível de comprometimento saudável ({porcentagem:.1f}% da receita utilizada)."
             status_func = st.success
         elif porcentagem < 85:
-            bar_color = "#F39C12" # Laranja
+            bar_color = "#F39C12"  # Laranja
             status_msg = f"⚠️ **Alerta moderado.** Você comprometeu {porcentagem:.1f}% da sua receita (R$ {total_gastos:,.2f} de R$ {renda_atual:,.2f}). Recomenda-se cautela com novos gastos."
             status_func = st.warning
         else:
-            bar_color = "#E74C3C" # Vermelho
+            bar_color = "#E74C3C"  # Vermelho
             status_msg = f"🚨 **Receita altamente comprometida!** Suas despesas excederam ou atingiram o limite crítico (R$ {total_gastos:,.2f} de R$ {renda_atual:,.2f}, totalizando {porcentagem:.1f}% da receita utilizada)."
             status_func = st.error
 
-        # 3. Renderização da Barra Corrigida (Forçando a cor visível)
+        # 3. Injeção HTML Limpa com Componente de Bloco Visível
         st.markdown(f'''
             <div style="
-                width: 100% !important; 
-                background-color: #111622 !important; 
-                border: 1px solid #2D3748 !important; 
-                border-radius: 50px !important; 
-                height: 18px !important; 
-                margin-top: 12px !important; 
-                margin-bottom: 8px !important;
-                overflow: hidden !important;
+                width: 100% !important;
+                background-color: #1A1F2C !important;
+                border: 1px solid #2D3748 !important;
+                border-radius: 10px !important;
+                padding: 4px !important;
+                margin-top: 15px !important;
+                margin-bottom: 5px !important;
                 display: block !important;
             ">
                 <div style="
-                    width: {porcentagem_barra}% !important; 
-                    height: 100% !important; 
-                    background: {bar_color} !important; 
-                    background-color: {bar_color} !important; 
-                    border-radius: 50px !important;
-                    box-shadow: 0px 0px 10px {bar_color}80 !important; /* Efeito Glow sutil */
-                    transition: width 0.6s ease-in-out !important;
-                    display: block !important;
+                    width: {max(porcentagem_barra, 2.0)}% !important; 
+                    background-color: {bar_color} !important;
+                    background: {bar_color} !important;
+                    height: 16px !important;
+                    border-radius: 8px !important;
+                    box-shadow: 0px 0px 12px {bar_color} !important;
+                    transition: width 0.5s ease-in-out !important;
                 "></div>
             </div>
             <p style="text-align: right; color: #A0AEC0; font-size: 13px; margin-top: 5px;">
