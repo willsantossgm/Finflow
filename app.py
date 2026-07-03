@@ -24,59 +24,126 @@ st.set_page_config(
 # Estilização personalizada via CSS para dar um toque premium e moderno
 st.markdown("""
     <style>
-    /* Estilo do título */
-    .title-container {
-        background: linear-gradient(135deg, #0f766e 0%, #115e59 100%);
-        padding: 2rem;
-        border-radius: 15px;
-        color: white;
-        margin-bottom: 2rem;
-        text-align: center;
-        box-shadow: 0 4px 15px rgba(0,0,0,0.3);
-    }
-    .title-text {
-        font-family: 'Outfit', 'Inter', sans-serif;
-        font-weight: 700;
-        font-size: 2.5rem;
-        margin: 0;
-        letter-spacing: 1px;
-        color: #99f2c8;
-    }
-    .subtitle-text {
+    @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;800&family=Outfit:wght@300;400;600;800&display=swap');
+
+    /* Fontes globais */
+    html, body, [class*="css"] {
         font-family: 'Inter', sans-serif;
+    }
+
+    /* Customização dos botões Streamlit */
+    div.stButton > button {
+        background-color: #115e59 !important;
+        color: white !important;
+        border: 1px solid #00D1B2 !important;
+        border-radius: 8px !important;
+        font-family: 'Inter', sans-serif;
+        font-weight: 600 !important;
+        transition: all 0.3s ease !important;
+    }
+    div.stButton > button:hover {
+        background-color: #00D1B2 !important;
+        color: #1A1F2C !important;
+        box-shadow: 0 0 10px rgba(0, 209, 178, 0.5) !important;
+        transform: translateY(-2px) !important;
+    }
+
+    /* Customização das caixas de input Streamlit */
+    div[data-baseweb="input"] {
+        border-radius: 8px !important;
+        border: 1px solid #2D3748 !important;
+        background-color: #1A1F2C !important;
+    }
+    div[data-baseweb="select"] {
+        border-radius: 8px !important;
+        border: 1px solid #2D3748 !important;
+    }
+
+    /* Customização da barra de progresso (metas) */
+    div[data-testid="stProgress"] > div {
+        height: 6px !important;
+    }
+    div[data-testid="stProgress"] > div > div {
+        background-color: #00D1B2 !important;
+    }
+
+    /* Cabeçalho de Elite */
+    .header-elite {
+        margin-bottom: 2rem;
+        text-align: left;
+        border-bottom: 1px solid #2D3748;
+        padding-bottom: 1.5rem;
+    }
+    .header-title {
+        font-family: 'Outfit', sans-serif;
+        font-size: 42px;
+        font-weight: 800;
+        color: #ffffff;
+        margin: 0;
+        line-height: 1.2;
+    }
+    .header-title span {
         font-weight: 300;
-        font-size: 1.1rem;
-        opacity: 0.9;
-        margin-top: 0.5rem;
-        color: #e2e8f0;
+        color: #00D1B2;
     }
-    /* Estilos dos painéis de saldo */
-    .metric-card {
-        border-radius: 12px;
-        padding: 1.5rem;
-        box-shadow: 0 4px 6px rgba(0, 0, 0, 0.2);
-        border: 1px solid #334155;
-        text-align: center;
-    }
-    .saldo-positivo {
-        background-color: #064e3b;
-        border-left: 5px solid #10b981;
-        color: #10b981;
-    }
-    .saldo-negativo {
-        background-color: #7f1d1d;
-        border-left: 5px solid #ef4444;
-        color: #f87171;
-    }
-    .metric-title {
-        font-size: 0.9rem;
-        text-transform: uppercase;
+    .header-subtitle {
+        font-family: 'Inter', sans-serif;
+        font-size: 14px;
+        color: #a0aec0;
+        margin-top: 0.25rem;
+        font-weight: 400;
         letter-spacing: 0.5px;
-        opacity: 0.8;
     }
-    .metric-value {
-        font-size: 2rem;
+
+    /* Grid de KPIs */
+    .kpi-container {
+        display: flex;
+        gap: 1.5rem;
+        margin-bottom: 2rem;
+        flex-wrap: wrap;
+    }
+    .kpi-card {
+        flex: 1;
+        min-width: 250px;
+        background-color: #1A1F2C;
+        border: 1px solid #2D3748;
+        border-radius: 12px;
+        padding: 1.25rem 1.5rem;
+        box-shadow: 0 4px 6px rgba(0, 0, 0, 0.15);
+        display: flex;
+        flex-direction: column;
+    }
+    .kpi-card-highlight {
+        flex: 1;
+        min-width: 250px;
+        background: linear-gradient(135deg, #09332f 0%, #0c2b29 100%);
+        border: 1.5px solid #00D1B2;
+        border-radius: 12px;
+        padding: 1.25rem 1.5rem;
+        box-shadow: 0 0 15px rgba(0, 209, 178, 0.2);
+        display: flex;
+        flex-direction: column;
+    }
+    .kpi-title {
+        font-family: 'Inter', sans-serif;
+        font-size: 13px;
+        color: #718096;
+        text-transform: uppercase;
+        letter-spacing: 1px;
+        font-weight: 600;
+    }
+    .kpi-value {
+        font-family: 'Outfit', sans-serif;
+        font-size: 28px;
         font-weight: 700;
+        color: #ffffff;
+        margin-top: 0.5rem;
+    }
+    .kpi-value-highlight {
+        font-family: 'Outfit', sans-serif;
+        font-size: 28px;
+        font-weight: 700;
+        color: #00D1B2;
         margin-top: 0.5rem;
     }
     </style>
@@ -124,11 +191,11 @@ if "user_email" not in st.session_state:
     st.session_state.user_email = None
 
 if not st.session_state.authenticated:
-    # Cabeçalho da página de login
+    # Cabeçalho da página de login estilo elite
     st.markdown("""
-        <div class="title-container">
-            <h1 class="title-text">✨ FinFlow SaaS</h1>
-            <p class="subtitle-text">Controle Financeiro Premium • Identidade Segura via Clerk</p>
+        <div class="header-elite">
+            <h1 class="header-title">Fin<span>flow</span> 🔐</h1>
+            <div class="header-subtitle">Gestão Inteligente de Capital • Painel Premium • Identidade Segura via Clerk</div>
         </div>
     """, unsafe_allow_html=True)
     
@@ -224,11 +291,11 @@ if os.path.exists(ARQUIVO_CONFIG):
     except Exception:
         pass
 
-# Cabeçalho da aplicação (Usuário Logado)
+# Cabeçalho da aplicação (Usuário Logado) estilo elite
 st.markdown(f"""
-    <div class="title-container">
-        <h1 class="title-text">✨ FinFlow</h1>
-        <p class="subtitle-text">Controle Financeiro Premium • Logado como: <b>{st.session_state.user_email}</b></p>
+    <div class="header-elite">
+        <h1 class="header-title">Fin<span>flow</span> 📊</h1>
+        <div class="header-subtitle">Gestão Inteligente de Capital • Painel Premium • Logado como: <b>{st.session_state.user_email}</b></div>
     </div>
 """, unsafe_allow_html=True)
 
@@ -287,31 +354,24 @@ if pagina_selecionada != "📊 Comparação Geral":
 # ----------------- RENDERIZAÇÃO DA PÁGINA SELECIONADA -----------------
 
 if pagina_selecionada in ["💸 Controle de Despesas", "💰 Gestão de Receitas"]:
-    # ----------------- PAINEL CENTRAL / KPIs DE TOPO -----------------
-    col1, col2, col3 = st.columns(3)
-
-    with col1:
-        st.metric(f"Renda Mensal ({mes_filtro})", f"R$ {renda_atual:,.2f}")
-
-    with col2:
-        st.metric(f"Total de Gastos ({mes_filtro})", f"R$ {total_gastos:,.2f}")
-
-    with col3:
-        if saldo_restante >= 0:
-            st.markdown(f"""
-                <div class="metric-card saldo-positivo">
-                    <div class="metric-title">Saldo Restante ({mes_filtro})</div>
-                    <div class="metric-value">R$ {saldo_restante:,.2f}</div>
-                </div>
-            """, unsafe_allow_html=True)
-        else:
-            st.markdown(f"""
-                <div class="metric-card saldo-negativo">
-                    <div class="metric-title">Saldo Restante ({mes_filtro})</div>
-                    <div class="metric-value">R$ {saldo_restante:,.2f}</div>
-                </div>
-            """, unsafe_allow_html=True)
-
+    # ----------------- GRID DE KPIs ESTILO DASHBOARD -----------------
+    kpi_html = f"""
+    <div class="kpi-container">
+        <div class="kpi-card">
+            <div class="kpi-title">Renda Mensal ({mes_filtro})</div>
+            <div class="kpi-value">R$ {renda_atual:,.2f}</div>
+        </div>
+        <div class="kpi-card">
+            <div class="kpi-title">Total de Gastos ({mes_filtro})</div>
+            <div class="kpi-value" style="color: #ef4444;">R$ {total_gastos:,.2f}</div>
+        </div>
+        <div class="kpi-card-highlight">
+            <div class="kpi-title" style="color: #00D1B2;">Saldo Disponível ({mes_filtro})</div>
+            <div class="kpi-value-highlight">R$ {saldo_restante:,.2f}</div>
+        </div>
+    </div>
+    """
+    st.markdown(kpi_html, unsafe_allow_html=True)
     st.markdown("---")
 
 # RENDERIZAÇÃO ESPECÍFICA DE CADA MENU
@@ -319,7 +379,7 @@ if pagina_selecionada in ["💸 Controle de Despesas", "💰 Gestão de Receitas
 if pagina_selecionada == "💸 Controle de Despesas":
     # ----------------- PÁGINA DE DESPESAS -----------------
     
-    # Metas e Limite de Gastos
+    # Metas e Limite de Gastos (Barra de Metas Fina e Elegante)
     limite_mensal = st.session_state.limite_gastos
     if limite_mensal > 0:
         porcentagem_limite = min(total_gastos / limite_mensal, 1.0)
@@ -540,11 +600,11 @@ elif pagina_selecionada == "💰 Gestão de Receitas":
     
     st.markdown(f"### 💰 Gestão de Receitas ({mes_filtro})")
     
-    # Novo KPI individual: Total Recebido no Mês
+    # Novo KPI individual: Total Recebido no Mês Estilo Dashboard Premium
     st.markdown(f"""
-        <div class="metric-card" style="background-color: #064e3b; border-color: #059669; color: #10b981; margin-bottom: 2rem;">
-            <div class="metric-title" style="font-size: 1rem; font-weight: 600;">Total Recebido no Mês ({mes_filtro})</div>
-            <div class="metric-value" style="font-size: 2.5rem; font-weight: 800;">R$ {total_receitas:,.2f}</div>
+        <div class="kpi-card-highlight" style="margin-bottom: 2rem;">
+            <div class="kpi-title" style="color: #00D1B2;">Total Recebido no Mês ({mes_filtro})</div>
+            <div class="kpi-value-highlight">R$ {total_receitas:,.2f}</div>
         </div>
     """, unsafe_allow_html=True)
     
@@ -696,16 +756,14 @@ else: # pagina_selecionada == "📊 Comparação Geral"
         
     total_acumulado_ano = sum(resumo_mensal_ano.values())
     
-    # 3. Métricas de Destaque
+    # 3. Métricas de Destaque Estilo Dashboard Premium
     st.markdown("---")
     
-    # Estilizando o cartão de acumulado
     st.markdown(f"""
-        <div class="metric-card" style="background-color: #0d9488; border-color: #0f766e; color: white;">
-            <div class="metric-title" style="font-size: 1rem; font-weight: 600;">Total Acumulado Gasto em {ano_selecionado}</div>
-            <div class="metric-value" style="font-size: 2.5rem; font-weight: 800;">R$ {total_acumulado_ano:,.2f}</div>
+        <div class="kpi-card-highlight" style="margin-bottom: 2rem;">
+            <div class="kpi-title" style="color: #00D1B2;">Total Acumulado Gasto em {ano_selecionado}</div>
+            <div class="kpi-value-highlight">R$ {total_acumulado_ano:,.2f}</div>
         </div>
-        <br>
     """, unsafe_allow_html=True)
     
     # Nomes dos meses para a Comparação Geral
