@@ -256,6 +256,16 @@ st.markdown("""
 ARQUIVO_DADOS = "dados_financeiros.json"
 ARQUIVO_CONFIG = "config_financas.json"
 
+ICONES_CAT_MAP = {
+    "Alimentação": "🍔", "Moradia": "🏠", "Transporte": "🚗",
+    "Lazer": "🎮", "Saúde": "💊", "Educação": "📚",
+    "Vestuário": "👕", "Tecnologia": "💻", "Presentes": "🎁",
+    "Receita": "💰", "Assinatura": "📱", "Investimento": "📈"
+}
+
+def obter_icone_categoria(cat_name):
+    return ICONES_CAT_MAP.get(cat_name.strip().capitalize(), "📌")
+
 # Helper functions para Autenticação via Supabase Auth usando o SDK Oficial
 def supabase_login(email, password):
     try:
@@ -672,16 +682,8 @@ if pagina_selecionada == "🏠 Dashboard":
             # Ordena por valor (maior primeiro) e pega top 5
             top_cats = sorted(resumo_cat_dash.items(), key=lambda x: x[1], reverse=True)[:5]
             
-            # Mapa de ícones por categoria
-            ICONES_CAT = {
-                "Alimentação": "🍔", "Moradia": "🏠", "Transporte": "🚗",
-                "Lazer": "🎮", "Saúde": "💊", "Educação": "📚",
-                "Vestuário": "👕", "Tecnologia": "💻", "Presentes": "🎁",
-                "Receita": "💰", "Assinatura": "📱", "Investimento": "📈"
-            }
-            
             for cat, val in top_cats:
-                icone = ICONES_CAT.get(cat, "📌")
+                icone = obter_icone_categoria(cat)
                 st.markdown(f'''
                     <div class="top-cat-item">
                         <span class="top-cat-name">{icone} {cat}</span>
@@ -747,13 +749,6 @@ elif pagina_selecionada == "💸 Controle de Despesas":
     if st.session_state.limites_categoria:
         st.markdown("#### 🎯 Metas por Categoria")
         
-        ICONES_CAT_DESP = {
-            "Alimentação": "🍔", "Moradia": "🏠", "Transporte": "🚗",
-            "Lazer": "🎮", "Saúde": "💊", "Educação": "📚",
-            "Vestuário": "👕", "Tecnologia": "💻", "Presentes": "🎁",
-            "Assinatura": "📱", "Investimento": "📈"
-        }
-        
         # Calcula gasto por categoria no mês
         gasto_por_cat = {}
         for g in gastos_filtrados:
@@ -765,7 +760,7 @@ elif pagina_selecionada == "💸 Controle de Despesas":
                 continue
             cat_gasto = gasto_por_cat.get(cat_nome, 0.0)
             cat_pct = min((cat_gasto / cat_limite) * 100, 100.0)
-            icone = ICONES_CAT_DESP.get(cat_nome, "📌")
+            icone = obter_icone_categoria(cat_nome)
             
             if cat_pct < 50:
                 cor_cat = "#00D1B2"
@@ -867,6 +862,9 @@ elif pagina_selecionada == "💸 Controle de Despesas":
                     )
                     st.session_state.gerenciador.salvar_dados(ARQUIVO_DADOS)
                     st.success("Gasto adicionado e salvo com sucesso!")
+                    st.balloons()
+                    import time
+                    time.sleep(1)
                     
                     # Reseta os campos
                     st.session_state.val_descricao = ""
@@ -885,7 +883,7 @@ elif pagina_selecionada == "💸 Controle de Despesas":
                 dados_tabela.append({
                     "Descrição": g.descricao,
                     "Valor (R$)": f"R$ {g.valor:.2f}",
-                    "Categoria": g.categoria,
+                    "Categoria": f"{obter_icone_categoria(g.categoria)} {g.categoria}",
                     "Data": g.data.strftime("%d/%m/%Y")
                 })
 
@@ -1059,6 +1057,9 @@ elif pagina_selecionada == "💰 Gestão de Receitas":
                     )
                     st.session_state.gerenciador.salvar_dados(ARQUIVO_DADOS)
                     st.success("Receita adicionada e salva com sucesso!")
+                    st.balloons()
+                    import time
+                    time.sleep(1)
                     
                     # Reseta os campos
                     st.session_state.val_desc_rec = ""
@@ -1316,3 +1317,6 @@ else: # pagina_selecionada == "📊 Comparação Geral"
                 st.dataframe(df_resumo_cat_ex, use_container_width=True, hide_index=True)
             else:
                 st.info("Nenhum gasto cadastrado no ano selecionado para analisar categorias.")
+
+# --- Footer Premium ---
+st.markdown('<div class="finflow-footer">FinFlow v1.0 • Powered by Supabase ⚡</div>', unsafe_allow_html=True)
