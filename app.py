@@ -245,41 +245,49 @@ if st.sidebar.button("🚪 Sair (Logout)", use_container_width=True):
     st.success("Sessão encerrada!")
     st.rerun()
 
-# 📅 FILTRO TEMPORAL GLOBAL na Barra Lateral
+# 🧭 MENU DE NAVEGAÇÃO na Barra Lateral
 st.sidebar.markdown("---")
-st.sidebar.markdown("### 📅 Filtro de Referência")
-meses_disponiveis = st.session_state.gerenciador.obter_meses_disponiveis()
-hoje_str = date.today().strftime("%m/%Y")
-try:
-    default_mes_idx = meses_disponiveis.index(hoje_str)
-except ValueError:
-    default_mes_idx = len(meses_disponiveis) - 1
-
-mes_filtro = st.sidebar.selectbox(
-    "Mês de Referência:",
-    options=meses_disponiveis,
-    index=default_mes_idx
+st.sidebar.markdown("### 🧭 Navegação")
+pagina_selecionada = st.sidebar.radio(
+    "Ir para:",
+    options=["💸 Controle de Despesas", "💰 Gestão de Receitas", "📊 Comparação Geral"]
 )
 
-# ----------------- FILTRAGEM DOS DADOS -----------------
-transacoes_filtradas = st.session_state.gerenciador.filtrar_por_mes_ano(mes_filtro)
+# Renderiza filtro de referência e carrega dados base de acordo com a seleção
+if pagina_selecionada != "📊 Comparação Geral":
+    st.sidebar.markdown("---")
+    st.sidebar.markdown("### 📅 Filtro de Referência")
+    meses_disponiveis = st.session_state.gerenciador.obter_meses_disponiveis()
+    hoje_str = date.today().strftime("%m/%Y")
+    try:
+        default_mes_idx = meses_disponiveis.index(hoje_str)
+    except ValueError:
+        default_mes_idx = len(meses_disponiveis) - 1
 
-# Separa despesas de receitas
-receitas_filtradas = [t for t in transacoes_filtradas if t.categoria == "Receita"]
-gastos_filtrados = [t for t in transacoes_filtradas if t.categoria != "Receita"]
+    mes_filtro = st.sidebar.selectbox(
+        "Mês de Referência:",
+        options=meses_disponiveis,
+        index=default_mes_idx
+    )
 
-total_receitas = sum(r.valor for r in receitas_filtradas)
-total_gastos = sum(g.valor for g in gastos_filtrados)
+    # ----------------- FILTRAGEM E CÁLCULO DOS DADOS -----------------
+    transacoes_filtradas = st.session_state.gerenciador.filtrar_por_mes_ano(mes_filtro)
 
-# Renda dinâmica = Renda fixa + receitas registradas
-renda_atual = st.session_state.renda_mensal + total_receitas
-saldo_restante = renda_atual - total_gastos
+    # Separa despesas de receitas
+    receitas_filtradas = [t for t in transacoes_filtradas if t.categoria == "Receita"]
+    gastos_filtrados = [t for t in transacoes_filtradas if t.categoria != "Receita"]
 
-# Criando as abas de Navegação Principal
-tab_principal, tab_comparacao = st.tabs(["💰 Controle Financeiro", "📊 Comparação Geral"])
+    total_receitas = sum(r.valor for r in receitas_filtradas)
+    total_gastos = sum(g.valor for g in gastos_filtrados)
 
-with tab_principal:
-    # ----------------- PAINEL CENTRAL (SALDO DO MÊS FILTRADO) -----------------
+    # Renda dinâmica = Renda fixa + receitas registradas
+    renda_atual = st.session_state.renda_mensal + total_receitas
+    saldo_restante = renda_atual - total_gastos
+
+# ----------------- RENDERIZAÇÃO DA PÁGINA SELECIONADA -----------------
+
+if pagina_selecionada in ["💸 Controle de Despesas", "💰 Gestão de Receitas"]:
+    # ----------------- PAINEL CENTRAL / KPIs DE TOPO -----------------
     col1, col2, col3 = st.columns(3)
 
     with col1:
@@ -306,7 +314,12 @@ with tab_principal:
 
     st.markdown("---")
 
-    # ----------------- SEÇÃO: METAS E LIMITE DE GASTOS -----------------
+# RENDERIZAÇÃO ESPECÍFICA DE CADA MENU
+
+if pagina_selecionada == "💸 Controle de Despesas":
+    # ----------------- PÁGINA DE DESPESAS -----------------
+    
+    # Metas e Limite de Gastos
     limite_mensal = st.session_state.limite_gastos
     if limite_mensal > 0:
         porcentagem_limite = min(total_gastos / limite_mensal, 1.0)
@@ -328,237 +341,161 @@ with tab_principal:
 
         st.markdown("---")
 
-    # ----------------- CORPO PRINCIPAL: ADICIONAR E LISTAR -----------------
     col_form, col_list = st.columns([1, 2])
 
     with col_form:
-        tab_form_gasto, tab_form_receita = st.tabs(["💸 Despesa", "💰 Receita"])
+        st.markdown("### 📝 Adicionar Novo Gasto")
         
-        with tab_form_gasto:
-            st.markdown("#### Adicionar Novo Gasto")
-            
-            # Estados locais de valor para limpar após adicionar gasto
-            if "val_descricao" not in st.session_state:
-                st.session_state.val_descricao = ""
-            if "val_valor" not in st.session_state:
-                st.session_state.val_valor = 0.0
+        # Estados locais de valor para limpar após adicionar gasto
+        if "val_descricao" not in st.session_state:
+            st.session_state.val_descricao = ""
+        if "val_valor" not in st.session_state:
+            st.session_state.val_valor = 0.0
 
-            descricao = st.text_input("Descrição do Gasto", value=st.session_state.val_descricao, placeholder="Ex: Mercado, Gasolina, Uber", key="gasto_desc")
-            valor = st.number_input("Valor (R$)", min_value=0.0, value=st.session_state.val_valor, step=5.0, format="%.2f", key="gasto_val")
+        descricao = st.text_input("Descrição do Gasto", value=st.session_state.val_descricao, placeholder="Ex: Mercado, Gasolina, Uber", key="gasto_desc")
+        valor = st.number_input("Valor (R$)", min_value=0.0, value=st.session_state.val_valor, step=5.0, format="%.2f", key="gasto_val")
+        
+        # Monta as opções do dropdown com a opção especial no final
+        opcoes_dropdown_cat = st.session_state.categorias + ["➕ Criar Nova Categoria..."]
+        
+        if "selected_categoria" not in st.session_state:
+            st.session_state.selected_categoria = st.session_state.categorias[0]
             
-            # Monta as opções do dropdown com a opção especial no final
-            opcoes_dropdown_cat = st.session_state.categorias + ["➕ Criar Nova Categoria..."]
-            
-            if "selected_categoria" not in st.session_state:
-                st.session_state.selected_categoria = st.session_state.categorias[0]
-                
-            try:
-                default_idx = opcoes_dropdown_cat.index(st.session_state.selected_categoria)
-            except ValueError:
-                default_idx = 0
+        try:
+            default_idx = opcoes_dropdown_cat.index(st.session_state.selected_categoria)
+        except ValueError:
+            default_idx = 0
 
-            categoria_selecionada = st.selectbox(
-                "Categoria",
-                options=opcoes_dropdown_cat,
-                index=default_idx,
-                key="gasto_cat_select"
-            )
+        categoria_selecionada = st.selectbox(
+            "Categoria",
+            options=opcoes_dropdown_cat,
+            index=default_idx,
+            key="gasto_cat_select"
+        )
 
-            # Condicional reativa para criar nova categoria
-            if categoria_selecionada == "➕ Criar Nova Categoria...":
-                nova_categoria_input = st.text_input("Digite o nome da nova categoria:", placeholder="Ex: Educação, Presentes", key="gasto_nova_cat").strip()
-                if st.button("Salvar Categoria", use_container_width=True, key="gasto_salvar_cat"):
-                    if nova_categoria_input:
-                        cat_normalizada = nova_categoria_input.capitalize()
-                        if cat_normalizada not in st.session_state.categorias:
-                            st.session_state.categorias.append(cat_normalizada)
-                            st.session_state.selected_categoria = cat_normalizada
-                            try:
-                                with open(ARQUIVO_CONFIG, "w", encoding="utf-8") as f:
-                                    json.dump({
-                                        "renda_mensal": st.session_state.renda_mensal,
-                                        "limite_gastos": st.session_state.limite_gastos,
-                                        "categorias": st.session_state.categorias
-                                    }, f)
-                                st.success(f"Categoria '{cat_normalizada}' criada e selecionada!")
-                                st.rerun()
-                            except Exception as e:
-                                st.error(f"Erro ao salvar nova categoria: {e}")
-                        else:
-                            st.warning("Esta categoria já existe!")
+        # Condicional reativa para criar nova categoria
+        if categoria_selecionada == "➕ Criar Nova Categoria...":
+            nova_categoria_input = st.text_input("Digite o nome da nova categoria:", placeholder="Ex: Educação, Presentes", key="gasto_nova_cat").strip()
+            if st.button("Salvar Categoria", use_container_width=True, key="gasto_salvar_cat"):
+                if nova_categoria_input:
+                    cat_normalizada = nova_categoria_input.capitalize()
+                    if cat_normalizada not in st.session_state.categorias:
+                        st.session_state.categorias.append(cat_normalizada)
+                        st.session_state.selected_categoria = cat_normalizada
+                        try:
+                            with open(ARQUIVO_CONFIG, "w", encoding="utf-8") as f:
+                                json.dump({
+                                    "renda_mensal": st.session_state.renda_mensal,
+                                    "limite_gastos": st.session_state.limite_gastos,
+                                    "categorias": st.session_state.categorias
+                                }, f)
+                            st.success(f"Categoria '{cat_normalizada}' criada e selecionada!")
+                            st.rerun()
+                        except Exception as e:
+                            st.error(f"Erro ao salvar nova categoria: {e}")
                     else:
-                        st.error("Por favor, digite um nome válido.")
+                        st.warning("Esta categoria já existe!")
+                else:
+                    st.error("Por favor, digite um nome válido.")
+        else:
+            st.session_state.selected_categoria = categoria_selecionada
+
+        data_gasto = st.date_input("Data do Gasto", value=date.today(), key="gasto_data")
+
+        if st.button("Adicionar Gasto ➕", use_container_width=True, key="gasto_btn_add"):
+            if not descricao.strip():
+                st.error("Por favor, preencha a descrição do gasto.")
+            elif valor <= 0:
+                st.error("O valor do gasto deve ser maior que zero.")
+            elif st.session_state.selected_categoria == "➕ Criar Nova Categoria...":
+                st.error("Por favor, crie e salve a nova categoria primeiro ou escolha uma existente.")
             else:
-                st.session_state.selected_categoria = categoria_selecionada
-
-            data_gasto = st.date_input("Data do Gasto", value=date.today(), key="gasto_data")
-
-            if st.button("Adicionar Gasto ➕", use_container_width=True, key="gasto_btn_add"):
-                if not descricao.strip():
-                    st.error("Por favor, preencha a descrição do gasto.")
-                elif valor <= 0:
-                    st.error("O valor do gasto deve ser maior que zero.")
-                elif st.session_state.selected_categoria == "➕ Criar Nova Categoria...":
-                    st.error("Por favor, crie e salve a nova categoria primeiro ou escolha uma existente.")
-                else:
-                    try:
-                        # Adiciona e persiste os dados
-                        st.session_state.gerenciador.adicionar_gasto(
-                            descricao=descricao,
-                            valor=valor,
-                            categoria=st.session_state.selected_categoria,
-                            data=data_gasto
-                        )
-                        st.session_state.gerenciador.salvar_dados(ARQUIVO_DADOS)
-                        st.success("Gasto adicionado e salvo com sucesso!")
-                        
-                        # Reseta os campos
-                        st.session_state.val_descricao = ""
-                        st.session_state.val_valor = 0.0
-                        st.rerun()
-                    except Exception as e:
-                        st.error(f"Erro ao adicionar gasto: {e}")
-                        
-        with tab_form_receita:
-            st.markdown("#### Adicionar Receita 💰")
-            
-            if "val_desc_rec" not in st.session_state:
-                st.session_state.val_desc_rec = ""
-            if "val_valor_rec" not in st.session_state:
-                st.session_state.val_valor_rec = 0.0
-
-            descricao_rec = st.text_input("Descrição da Receita", value=st.session_state.val_desc_rec, placeholder="Ex: Salário, Freela, Investimento", key="rec_desc")
-            valor_rec = st.number_input("Valor Recebido (R$)", min_value=0.0, value=st.session_state.val_valor_rec, step=50.0, format="%.2f", key="rec_val")
-            data_rec = st.date_input("Data da Receita", value=date.today(), key="rec_data")
-
-            if st.button("Adicionar Receita 💰", use_container_width=True, key="rec_btn_add"):
-                if not descricao_rec.strip():
-                    st.error("Por favor, preencha a descrição da receita.")
-                elif valor_rec <= 0:
-                    st.error("O valor da receita deve ser maior que zero.")
-                else:
-                    try:
-                        # Adiciona e persiste como transação do tipo Receita
-                        st.session_state.gerenciador.adicionar_gasto(
-                            descricao=descricao_rec,
-                            valor=valor_rec,
-                            categoria="Receita",
-                            data=data_rec
-                        )
-                        st.session_state.gerenciador.salvar_dados(ARQUIVO_DADOS)
-                        st.success("Receita adicionada e salva com sucesso!")
-                        
-                        # Reseta os campos
-                        st.session_state.val_desc_rec = ""
-                        st.session_state.val_valor_rec = 0.0
-                        st.rerun()
-                    except Exception as e:
-                        st.error(f"Erro ao adicionar receita: {e}")
+                try:
+                    # Adiciona e persiste os dados
+                    st.session_state.gerenciador.adicionar_gasto(
+                        descricao=descricao,
+                        valor=valor,
+                        categoria=st.session_state.selected_categoria,
+                        data=data_gasto
+                    )
+                    st.session_state.gerenciador.salvar_dados(ARQUIVO_DADOS)
+                    st.success("Gasto adicionado e salvo com sucesso!")
+                    
+                    # Reseta os campos
+                    st.session_state.val_descricao = ""
+                    st.session_state.val_valor = 0.0
+                    st.rerun()
+                except Exception as e:
+                    st.error(f"Erro ao adicionar gasto: {e}")
 
     with col_list:
-        tab_list_gastos, tab_list_receitas = st.tabs(["💸 Despesas", "💰 Receitas"])
-        
-        with tab_list_gastos:
-            st.markdown(f"#### Histórico de Despesas ({mes_filtro})")
-            if len(gastos_filtrados) == 0:
-                st.info(f"Nenhuma despesa cadastrada para o mês {mes_filtro}.")
-            else:
-                dados_tabela = []
-                for g in reversed(gastos_filtrados):
-                    dados_tabela.append({
-                        "Descrição": g.descricao,
-                        "Valor (R$)": f"R$ {g.valor:.2f}",
-                        "Categoria": g.categoria,
-                        "Data": g.data.strftime("%d/%m/%Y")
-                    })
+        st.markdown(f"### 📊 Histórico de Despesas ({mes_filtro})")
+        if len(gastos_filtrados) == 0:
+            st.info(f"Nenhuma despesa cadastrada para o mês {mes_filtro}.")
+        else:
+            dados_tabela = []
+            for g in reversed(gastos_filtrados):
+                dados_tabela.append({
+                    "Descrição": g.descricao,
+                    "Valor (R$)": f"R$ {g.valor:.2f}",
+                    "Categoria": g.categoria,
+                    "Data": g.data.strftime("%d/%m/%Y")
+                })
 
-                st.dataframe(dados_tabela, use_container_width=True)
+            st.dataframe(dados_tabela, use_container_width=True)
 
-                # Botão de exportação
-                df_export = pd.DataFrame([
-                    {
-                        "ID": g.id,
-                        "Descrição": g.descricao,
-                        "Valor (R$)": g.valor,
-                        "Categoria": g.categoria,
-                        "Data": g.data.strftime("%Y-%m-%d")
-                    }
-                    for g in gastos_filtrados
-                ])
-                csv_data = df_export.to_csv(index=False).encode("utf-8")
-                
-                st.download_button(
-                    label="📥 Exportar Despesas Deste Mês (CSV)",
-                    data=csv_data,
-                    file_name=f"despesas_{mes_filtro.replace('/', '_')}.csv",
-                    mime="text/csv",
-                    key="export_despesas_btn",
-                    use_container_width=True
-                )
-                
-        with tab_list_receitas:
-            st.markdown(f"#### Histórico de Receitas ({mes_filtro})")
-            if len(receitas_filtradas) == 0:
-                st.info(f"Nenhuma receita cadastrada para o mês {mes_filtro}.")
-            else:
-                dados_tabela_rec = []
-                for r in reversed(receitas_filtradas):
-                    dados_tabela_rec.append({
-                        "Descrição": r.descricao,
-                        "Valor (R$)": f"R$ {r.valor:.2f}",
-                        "Data": r.data.strftime("%d/%m/%Y")
-                    })
-
-                st.dataframe(dados_tabela_rec, use_container_width=True)
-
-                # Botão de exportação
-                df_export_rec = pd.DataFrame([
-                    {
-                        "ID": r.id,
-                        "Descrição": r.descricao,
-                        "Valor (R$)": r.valor,
-                        "Data": r.data.strftime("%Y-%m-%d")
-                    }
-                    for r in receitas_filtradas
-                ])
-                csv_data_rec = df_export_rec.to_csv(index=False).encode("utf-8")
-                
-                st.download_button(
-                    label="📥 Exportar Receitas Deste Mês (CSV)",
-                    data=csv_data_rec,
-                    file_name=f"receitas_{mes_filtro.replace('/', '_')}.csv",
-                    mime="text/csv",
-                    key="export_receitas_btn",
-                    use_container_width=True
-                )
+            # Botão de exportação
+            df_export = pd.DataFrame([
+                {
+                    "ID": g.id,
+                    "Descrição": g.descricao,
+                    "Valor (R$)": g.valor,
+                    "Categoria": g.categoria,
+                    "Data": g.data.strftime("%Y-%m-%d")
+                }
+                for g in gastos_filtrados
+            ])
+            csv_data = df_export.to_csv(index=False).encode("utf-8")
+            
+            st.download_button(
+                label="📥 Exportar Despesas Deste Mês (CSV)",
+                data=csv_data,
+                file_name=f"despesas_{mes_filtro.replace('/', '_')}.csv",
+                mime="text/csv",
+                key="export_despesas_btn",
+                use_container_width=True
+            )
 
         st.markdown("---")
 
-        # Exclusão de Transações
-        st.markdown("### 🗑️ Excluir Lançamento")
-        opcoes_exclusao = {
-            g.id: f"{'[Receita] ' if g.categoria == 'Receita' else '[Despesa] '} {g.descricao} (R$ {g.valor:.2f} - {g.data.strftime('%d/%m/%Y')})"
-            for g in transacoes_filtradas
-        }
-        
-        gasto_selecionado_id = st.selectbox(
-            "Selecione um lançamento para excluir:",
-            options=list(opcoes_exclusao.keys()),
-            format_func=lambda x: opcoes_exclusao[x],
-            key="gasto_excluir_select"
-        )
-        
-        if st.button("Excluir Lançamento 🗑️", use_container_width=True):
-            if gasto_selecionado_id:
-                if st.session_state.gerenciador.remover_gasto(gasto_selecionado_id):
-                    try:
-                        st.session_state.gerenciador.salvar_dados(ARQUIVO_DADOS)
-                        st.success("Lançamento excluído com sucesso!")
-                        st.rerun()
-                    except Exception as e:
-                        st.error(f"Erro ao salvar dados após exclusão: {e}")
-                else:
-                    st.error("Erro interno ao tentar remover o lançamento.")
+        # Exclusão de Despesas
+        st.markdown("### 🗑️ Excluir Despesa")
+        if len(gastos_filtrados) == 0:
+            st.info("Nenhuma despesa disponível para exclusão.")
+        else:
+            opcoes_exclusao_gastos = {
+                g.id: f"{g.descricao} (R$ {g.valor:.2f} - {g.data.strftime('%d/%m/%Y')})"
+                for g in gastos_filtrados
+            }
+            
+            gasto_selecionado_id = st.selectbox(
+                "Selecione uma despesa para excluir:",
+                options=list(opcoes_exclusao_gastos.keys()),
+                format_func=lambda x: opcoes_exclusao_gastos[x],
+                key="gasto_excluir_select"
+            )
+            
+            if st.button("Excluir Despesa 🗑️", use_container_width=True):
+                if gasto_selecionado_id:
+                    if st.session_state.gerenciador.remover_gasto(gasto_selecionado_id):
+                        try:
+                            st.session_state.gerenciador.salvar_dados(ARQUIVO_DADOS)
+                            st.success("Despesa excluída com sucesso!")
+                            st.rerun()
+                        except Exception as e:
+                            st.error(f"Erro ao salvar dados após exclusão: {e}")
+                    else:
+                        st.error("Erro interno ao tentar remover a despesa.")
 
         st.markdown("---")
 
@@ -579,39 +516,146 @@ with tab_principal:
                 total_geral = df_categorias["Valor"].sum()
                 df_categorias["Porcentagem"] = (df_categorias["Valor"] / total_geral * 100).round(1) if total_geral > 0 else 0.0
 
-            col_l, col_c, col_r = st.columns([1, 2, 1])
-            with col_c:
-                st.markdown("<p style='text-align: center; font-size: 0.95rem; font-weight: 600; opacity: 0.9;'>Proporção do Orçamento (%)</p>", unsafe_allow_html=True)
-                grafico_rosca = alt.Chart(df_categorias).mark_arc(innerRadius=60).encode(
-                    theta=alt.Theta(field="Valor", type="quantitative"),
-                    color=alt.Color(
-                        field="Categoria",
-                        type="nominal",
-                        scale=alt.Scale(scheme="tealblues")
-                    ),
-                    tooltip=[
-                        alt.Tooltip("Categoria", title="Categoria"),
-                        alt.Tooltip("Valor", format="$,.2f", title="Valor"),
-                        alt.Tooltip("Porcentagem", format=".1f", title="Proporção (%)")
-                    ]
-                ).properties(height=280).interactive()
+                col_l, col_c, col_r = st.columns([1, 2, 1])
+                with col_c:
+                    st.markdown("<p style='text-align: center; font-size: 0.95rem; font-weight: 600; opacity: 0.9;'>Proporção do Orçamento (%)</p>", unsafe_allow_html=True)
+                    grafico_rosca = alt.Chart(df_categorias).mark_arc(innerRadius=60).encode(
+                        theta=alt.Theta(field="Valor", type="quantitative"),
+                        color=alt.Color(
+                            field="Categoria",
+                            type="nominal",
+                            scale=alt.Scale(scheme="tealblues")
+                        ),
+                        tooltip=[
+                            alt.Tooltip("Categoria", title="Categoria"),
+                            alt.Tooltip("Valor", format="$,.2f", title="Valor"),
+                            alt.Tooltip("Porcentagem", format=".1f", title="Proporção (%)")
+                        ]
+                    ).properties(height=280).interactive()
 
-                st.altair_chart(grafico_rosca, use_container_width=True)
+                    st.altair_chart(grafico_rosca, use_container_width=True)
 
-# Nomes dos meses para a Comparação Geral
-NOME_MESES = {
-    1: "Janeiro", 2: "Fevereiro", 3: "Março", 4: "Abril",
-    5: "Maio", 6: "Junho", 7: "Julho", 8: "Agosto",
-    9: "Setembro", 10: "Outubro", 11: "Novembro", 12: "Dezembro"
-}
+elif pagina_selecionada == "💰 Gestão de Receitas":
+    # ----------------- PÁGINA DE RECEITAS -----------------
+    
+    st.markdown(f"### 💰 Gestão de Receitas ({mes_filtro})")
+    
+    # Novo KPI individual: Total Recebido no Mês
+    st.markdown(f"""
+        <div class="metric-card" style="background-color: #064e3b; border-color: #059669; color: #10b981; margin-bottom: 2rem;">
+            <div class="metric-title" style="font-size: 1rem; font-weight: 600;">Total Recebido no Mês ({mes_filtro})</div>
+            <div class="metric-value" style="font-size: 2.5rem; font-weight: 800;">R$ {total_receitas:,.2f}</div>
+        </div>
+    """, unsafe_allow_html=True)
+    
+    col_form, col_list = st.columns([1, 2])
 
-NOME_MESES_CURTO = {
-    1: "Jan", 2: "Fev", 3: "Mar", 4: "Abr",
-    5: "Mai", 6: "Jun", 7: "Jul", 8: "Ago",
-    9: "Set", 10: "Out", 11: "Nov", 12: "Dez"
-}
+    with col_form:
+        st.markdown("### 💰 Adicionar Novo Ganho")
+        
+        if "val_desc_rec" not in st.session_state:
+            st.session_state.val_desc_rec = ""
+        if "val_valor_rec" not in st.session_state:
+            st.session_state.val_valor_rec = 0.0
 
-with tab_comparacao:
+        descricao_rec = st.text_input("Descrição da Receita", value=st.session_state.val_desc_rec, placeholder="Ex: Salário, Freela, Investimento", key="rec_desc")
+        valor_rec = st.number_input("Valor Recebido (R$)", min_value=0.0, value=st.session_state.val_valor_rec, step=50.0, format="%.2f", key="rec_val")
+        data_rec = st.date_input("Data da Receita", value=date.today(), key="rec_data")
+
+        if st.button("Adicionar Receita 💰", use_container_width=True, key="rec_btn_add"):
+            if not descricao_rec.strip():
+                st.error("Por favor, preencha a descrição da receita.")
+            elif valor_rec <= 0:
+                st.error("O valor da receita deve ser maior que zero.")
+            else:
+                try:
+                    # Adiciona e persiste como transação do tipo Receita
+                    st.session_state.gerenciador.adicionar_gasto(
+                        descricao=descricao_rec,
+                        valor=valor_rec,
+                        categoria="Receita",
+                        data=data_rec
+                    )
+                    st.session_state.gerenciador.salvar_dados(ARQUIVO_DADOS)
+                    st.success("Receita adicionada e salva com sucesso!")
+                    
+                    # Reseta os campos
+                    st.session_state.val_desc_rec = ""
+                    st.session_state.val_valor_rec = 0.0
+                    st.rerun()
+                except Exception as e:
+                    st.error(f"Erro ao adicionar receita: {e}")
+
+    with col_list:
+        st.markdown(f"### 📊 Histórico de Receitas ({mes_filtro})")
+        if len(receitas_filtradas) == 0:
+            st.info(f"Nenhuma receita cadastrada para o mês {mes_filtro}.")
+        else:
+            dados_tabela_rec = []
+            for r in reversed(receitas_filtradas):
+                dados_tabela_rec.append({
+                    "Descrição": r.descricao,
+                    "Valor (R$)": f"R$ {r.valor:.2f}",
+                    "Data": r.data.strftime("%d/%m/%Y")
+                })
+
+            st.dataframe(dados_tabela_rec, use_container_width=True)
+
+            # Botão de exportação
+            df_export_rec = pd.DataFrame([
+                {
+                    "ID": r.id,
+                    "Descrição": r.descricao,
+                    "Valor (R$)": r.valor,
+                    "Data": r.data.strftime("%Y-%m-%d")
+                }
+                for r in receitas_filtradas
+            ])
+            csv_data_rec = df_export_rec.to_csv(index=False).encode("utf-8")
+            
+            st.download_button(
+                label="📥 Exportar Receitas Deste Mês (CSV)",
+                data=csv_data_rec,
+                file_name=f"receitas_{mes_filtro.replace('/', '_')}.csv",
+                mime="text/csv",
+                key="export_receitas_btn",
+                use_container_width=True
+            )
+
+        st.markdown("---")
+
+        # Exclusão de Receitas
+        st.markdown("### 🗑️ Excluir Receita")
+        if len(receitas_filtradas) == 0:
+            st.info("Nenhuma receita disponível para exclusão.")
+        else:
+            opcoes_exclusao_receitas = {
+                r.id: f"{r.descricao} (R$ {r.valor:.2f} - {r.data.strftime('%d/%m/%Y')})"
+                for r in receitas_filtradas
+            }
+            
+            receita_selecionada_id = st.selectbox(
+                "Selecione uma receita para excluir:",
+                options=list(opcoes_exclusao_receitas.keys()),
+                format_func=lambda x: opcoes_exclusao_receitas[x],
+                key="receita_excluir_select"
+            )
+            
+            if st.button("Excluir Receita 🗑️", use_container_width=True):
+                if receita_selecionada_id:
+                    if st.session_state.gerenciador.remover_gasto(receita_selecionada_id):
+                        try:
+                            st.session_state.gerenciador.salvar_dados(ARQUIVO_DADOS)
+                            st.success("Receita excluída com sucesso!")
+                            st.rerun()
+                        except Exception as e:
+                            st.error(f"Erro ao salvar dados após exclusão: {e}")
+                    else:
+                        st.error("Erro interno ao tentar remover a receita.")
+
+else: # pagina_selecionada == "📊 Comparação Geral"
+    # ----------------- PÁGINA DE COMPARAÇÃO GERAL (ANUAL) -----------------
+    
     st.markdown("## 📊 Comparação Geral")
     st.markdown("Analise o histórico consolidado de gastos organizados por ano e mês, livre de filtros mensais da barra lateral.")
     
@@ -664,6 +708,19 @@ with tab_comparacao:
         <br>
     """, unsafe_allow_html=True)
     
+    # Nomes dos meses para a Comparação Geral
+    NOME_MESES = {
+        1: "Janeiro", 2: "Fevereiro", 3: "Março", 4: "Abril",
+        5: "Maio", 6: "Junho", 7: "Julho", 8: "Agosto",
+        9: "Setembro", 10: "Outubro", 11: "Novembro", 12: "Dezembro"
+    }
+
+    NOME_MESES_CURTO = {
+        1: "Jan", 2: "Fev", 3: "Mar", 4: "Abr",
+        5: "Mai", 6: "Jun", 7: "Jul", 8: "Ago",
+        9: "Set", 10: "Out", 11: "Nov", 12: "Dez"
+    }
+
     # Prepara dados mensais
     df_grafico_ano = pd.DataFrame([
         {
