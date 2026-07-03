@@ -450,6 +450,8 @@ if "limite_gastos" not in st.session_state:
     st.session_state.limite_gastos = 1500.0
 if "categorias" not in st.session_state:
     st.session_state.categorias = ["Alimentação", "Moradia", "Transporte", "Lazer", "Saúde"]
+if "limites_categoria" not in st.session_state:
+    st.session_state.limites_categoria = {}
 
 if os.path.exists(ARQUIVO_CONFIG):
     try:
@@ -459,6 +461,8 @@ if os.path.exists(ARQUIVO_CONFIG):
             st.session_state.limite_gastos = config.get("limite_gastos", 1500.0)
             if "categorias" in config:
                 st.session_state.categorias = config["categorias"]
+            if "limites_categoria" in config:
+                st.session_state.limites_categoria = config["limites_categoria"]
     except Exception:
         pass
 
@@ -497,6 +501,39 @@ pagina_selecionada = st.sidebar.radio(
     "Ir para:",
     options=["🏠 Dashboard", "💸 Controle de Despesas", "💰 Gestão de Receitas", "📊 Comparação Geral"]
 )
+
+# ⚙️ Configuração de Limites por Categoria
+st.sidebar.markdown("---")
+with st.sidebar.expander("⚙️ Metas por Categoria", expanded=False):
+    st.markdown("Defina um limite mensal para cada categoria:")
+    limites_atualizados = {}
+    for cat in st.session_state.categorias:
+        limite_atual = st.session_state.limites_categoria.get(cat, 0.0)
+        novo_limite = st.number_input(
+            f"{cat}",
+            min_value=0.0,
+            value=float(limite_atual),
+            step=50.0,
+            format="%.2f",
+            key=f"limite_cat_{cat}"
+        )
+        if novo_limite > 0:
+            limites_atualizados[cat] = novo_limite
+    
+    if st.button("💾 Salvar Limites", use_container_width=True, key="salvar_limites_cat"):
+        st.session_state.limites_categoria = limites_atualizados
+        try:
+            config_data = {
+                "renda_mensal": st.session_state.renda_mensal,
+                "limite_gastos": st.session_state.limite_gastos,
+                "categorias": st.session_state.categorias,
+                "limites_categoria": limites_atualizados
+            }
+            with open(ARQUIVO_CONFIG, "w", encoding="utf-8") as f:
+                json.dump(config_data, f, ensure_ascii=False)
+            st.success("Limites salvos!")
+        except Exception as e:
+            st.error(f"Erro ao salvar: {e}")
 
 # Renderiza filtro de referência e carrega dados base de acordo com a seleção
 if pagina_selecionada not in ["📊 Comparação Geral"]:
@@ -706,6 +743,50 @@ elif pagina_selecionada == "💸 Controle de Despesas":
         </div>
     """, unsafe_allow_html=True)
     
+    # --- Barras de Progresso por Categoria (Metas) ---
+    if st.session_state.limites_categoria:
+        st.markdown("#### 🎯 Metas por Categoria")
+        
+        ICONES_CAT_DESP = {
+            "Alimentação": "🍔", "Moradia": "🏠", "Transporte": "🚗",
+            "Lazer": "🎮", "Saúde": "💊", "Educação": "📚",
+            "Vestuário": "👕", "Tecnologia": "💻", "Presentes": "🎁",
+            "Assinatura": "📱", "Investimento": "📈"
+        }
+        
+        # Calcula gasto por categoria no mês
+        gasto_por_cat = {}
+        for g in gastos_filtrados:
+            cat_n = g.categoria.strip().capitalize()
+            gasto_por_cat[cat_n] = gasto_por_cat.get(cat_n, 0.0) + g.valor
+        
+        for cat_nome, cat_limite in st.session_state.limites_categoria.items():
+            if cat_limite <= 0:
+                continue
+            cat_gasto = gasto_por_cat.get(cat_nome, 0.0)
+            cat_pct = min((cat_gasto / cat_limite) * 100, 100.0)
+            icone = ICONES_CAT_DESP.get(cat_nome, "📌")
+            
+            if cat_pct < 50:
+                cor_cat = "#00D1B2"
+            elif cat_pct < 85:
+                cor_cat = "#F39C12"
+            else:
+                cor_cat = "#E74C3C"
+            
+            st.markdown(f'''
+                <div style="margin-bottom: 12px;">
+                    <div style="display: flex; justify-content: space-between; margin-bottom: 4px;">
+                        <span style="color: #E2E8F0; font-size: 13px; font-weight: 500;">{icone} {cat_nome}</span>
+                        <span style="color: #A0AEC0; font-size: 12px;">R$ {cat_gasto:,.2f} / R$ {cat_limite:,.2f} ({cat_pct:.0f}%)</span>
+                    </div>
+                    <div class="commitment-bar-outer" style="height: 10px; margin-top: 0; margin-bottom: 0;">
+                        <div class="commitment-bar-inner" style="width: {max(cat_pct, 2.0)}%; background-color: {cor_cat}; height: 10px;">&nbsp;</div>
+                    </div>
+                </div>
+            ''', unsafe_allow_html=True)
+        
+        st.markdown("---")
 
     col_form, col_list = st.columns([1, 2])
 
