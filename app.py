@@ -69,28 +69,30 @@ st.markdown("""
 
     /* Cabeçalho de Elite */
     .header-elite {
-        margin-bottom: 2rem;
+        margin-bottom: 2.5rem;
         text-align: left;
         border-bottom: 1px solid #2D3748;
-        padding-bottom: 1.5rem;
+        padding-bottom: 1.75rem;
     }
     .header-title {
         font-family: 'Outfit', sans-serif;
-        font-size: 42px;
+        font-size: 54px;
         font-weight: 800;
         color: #ffffff;
         margin: 0;
-        line-height: 1.2;
+        line-height: 1.1;
+        letter-spacing: -1.5px;
     }
     .header-title span {
         font-weight: 300;
-        color: #00D1B2;
+        color: #00E5FF;
+        text-shadow: 0px 0px 15px rgba(0, 229, 255, 0.4);
     }
     .header-subtitle {
         font-family: 'Inter', sans-serif;
         font-size: 14px;
         color: #a0aec0;
-        margin-top: 0.25rem;
+        margin-top: 0.5rem;
         font-weight: 400;
         letter-spacing: 0.5px;
     }
@@ -194,7 +196,7 @@ if not st.session_state.authenticated:
     # Cabeçalho da página de login estilo elite
     st.markdown("""
         <div class="header-elite">
-            <h1 class="header-title">Fin<span>flow</span> 🔐</h1>
+            <h1 class="header-title">Fin<span>flow</span> ⚡</h1>
             <div class="header-subtitle">Gestão Inteligente de Capital • Painel Premium • Identidade Segura via Clerk</div>
         </div>
     """, unsafe_allow_html=True)
@@ -294,7 +296,7 @@ if os.path.exists(ARQUIVO_CONFIG):
 # Cabeçalho da aplicação (Usuário Logado) estilo elite
 st.markdown(f"""
     <div class="header-elite">
-        <h1 class="header-title">Fin<span>flow</span> 📊</h1>
+        <h1 class="header-title">Fin<span>flow</span> ⚡</h1>
         <div class="header-subtitle">Gestão Inteligente de Capital • Painel Premium • Logado como: <b>{st.session_state.user_email}</b></div>
     </div>
 """, unsafe_allow_html=True)
