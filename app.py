@@ -220,8 +220,9 @@ if not st.session_state.authenticated:
                         if res is not None and res.status_code == 200:
                             data = res.json()
                             st.session_state.authenticated = True
-                            st.session_state.clerk_user_id = f"user_{data['user']['id']}"
+                            st.session_state.clerk_user_id = data['user']['id']
                             st.session_state.user_email = email_clean
+                            st.session_state.user_access_token = data.get("access_token")
                             st.success("Autenticado com sucesso!")
                             st.rerun()
                         else:
@@ -270,7 +271,10 @@ if not st.session_state.authenticated:
 # ----------------- INICIALIZAÇÃO DO GERENCIADOR AUTENTICADO -----------------
 # Garantimos que o GerenciadorFinancas seja instanciado com o ID do Clerk atual
 if "gerenciador" not in st.session_state or getattr(st.session_state.gerenciador, "user_id", None) != st.session_state.clerk_user_id or not hasattr(st.session_state.gerenciador, "agrupar_por_categoria_ano"):
-    st.session_state.gerenciador = GerenciadorFinancas(user_id=st.session_state.clerk_user_id)
+    st.session_state.gerenciador = GerenciadorFinancas(
+        user_id=st.session_state.clerk_user_id,
+        access_token=st.session_state.get("user_access_token")
+    )
     # Tenta carregar dados do Supabase
     st.session_state.gerenciador.carregar_dados(ARQUIVO_DADOS)
 
@@ -309,6 +313,7 @@ if st.sidebar.button("🚪 Sair (Logout)", use_container_width=True):
     st.session_state.authenticated = False
     st.session_state.clerk_user_id = None
     st.session_state.user_email = None
+    st.session_state.user_access_token = None
     # Limpa o gerenciador
     st.session_state.gerenciador = GerenciadorFinancas()
     st.success("Sessão encerrada!")

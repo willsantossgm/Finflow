@@ -32,13 +32,16 @@ class GerenciadorFinancas:
     de cada usuário utilizando o identificador do Clerk.
     """
 
-    def __init__(self, user_id: str = None):
+    def __init__(self, user_id: str = None, access_token: str = None):
         self.user_id = user_id
+        self.access_token = access_token
         self.gastos: List[Gasto] = []
         self.api_url = "https://ojiutbtyaxmpwstgnmnn.supabase.co/rest/v1/gastos"
+        
+        auth_token = access_token if access_token else "sb_publishable_c-OH1QCwqmsWCmDj9rMq-w_eaqTJgDQ"
         self.headers = {
             "apikey": "sb_publishable_c-OH1QCwqmsWCmDj9rMq-w_eaqTJgDQ",
-            "Authorization": "Bearer sb_publishable_c-OH1QCwqmsWCmDj9rMq-w_eaqTJgDQ",
+            "Authorization": f"Bearer {auth_token}",
             "Content-Type": "application/json",
             "Prefer": "return=representation"
         }
@@ -182,7 +185,7 @@ class GerenciadorFinancas:
         """
         if self.user_id:
             try:
-                url = f"{self.api_url}?id=eq.{id_gasto}"
+                url = f"{self.api_url}?id=eq.{id_gasto}&user_id=eq.{self.user_id}"
                 requests.delete(url, headers=self.headers)
             except Exception:
                 pass
