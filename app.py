@@ -148,7 +148,24 @@ st.markdown("""
         color: #00D1B2;
         margin-top: 0.5rem;
     }
-    </style>
+    .kpi-card-highlight-red {
+        flex: 1;
+        min-width: 250px;
+        background: linear-gradient(135deg, #3B1C1C 0%, #2B1515 100%);
+        border: 1.5px solid #ef4444;
+        border-radius: 12px;
+        padding: 1.25rem 1.5rem;
+        box-shadow: 0 0 15px rgba(239, 68, 68, 0.2);
+        display: flex;
+        flex-direction: column;
+    }
+    .kpi-value-highlight-red {
+        font-family: 'Outfit', sans-serif;
+        font-size: 28px;
+        font-weight: 700;
+        color: #ef4444;
+        margin-top: 0.5rem;
+    }
 """, unsafe_allow_html=True)
 
 # Definição dos caminhos dos arquivos de dados e config locais
@@ -448,6 +465,14 @@ if pagina_selecionada in ["💸 Controle de Despesas", "💰 Gestão de Receitas
 
 if pagina_selecionada == "💸 Controle de Despesas":
     # ----------------- PÁGINA DE DESPESAS -----------------
+    st.markdown(f"### 💸 Controle de Despesas ({mes_filtro})")
+    
+    st.markdown(f"""
+        <div class="kpi-card-highlight-red" style="margin-bottom: 2rem;">
+            <div class="kpi-title" style="color: #ef4444;">Total Gasto no Mês ({mes_filtro})</div>
+            <div class="kpi-value-highlight-red">R$ {total_gastos:,.2f}</div>
+        </div>
+    """, unsafe_allow_html=True)
     
     # Metas e Limite de Gastos (Barra de Metas Fina, Dinâmica e Elegante baseada no comprometimento da receita)
     st.markdown(f"### 🎯 Metas do Mês ({mes_filtro})")
