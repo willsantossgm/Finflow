@@ -373,38 +373,14 @@ if os.path.exists(ARQUIVO_CONFIG):
     except Exception:
         pass
 
+# 1. Logotipo Premium no Topo
 st.markdown('''
     <style>
-        /* Importação de uma fonte geométrica ultra fina e moderna */
         @import url("https://fonts.googleapis.com/css2?family=Inter:wght@200;300;400&display=swap");
-
-        .brand-container {
-            display: flex !important;
-            align-items: center !important;
-            padding: 20px 0px 10px 0px !important;
-            margin-bottom: 30px !important;
-            gap: 15px !important;
-        }
-        .brand-text {
-            font-family: "Inter", sans-serif !important;
-            font-size: 68px !important;
-            font-weight: 300 !important; /* Linhas finas e elegantes */
-            letter-spacing: -1.5px !important;
-            margin: 0px !important;
-            line-height: 1 !important;
-            color: #00E5FF !important; /* Ciano/Teal brilhante */
-        }
-        .brand-icon {
-            font-size: 62px !important;
-            line-height: 1 !important;
-            display: inline-block !important;
-            /* Gradiente no emoji de raio (Laranja para Vermelho) */
-            background: linear-gradient(135deg, #FF9100 0%, #FF3D00 100%) !important;
-            -webkit-background-clip: text !important;
-            -webkit-text-fill-color: transparent !important;
-        }
+        .brand-container { display: flex !important; align-items: center !important; padding: 20px 0px 10px 0px !important; margin-bottom: 30px !important; gap: 15px !important; }
+        .brand-text { font-family: "Inter", sans-serif !important; font-size: 68px !important; font-weight: 300 !important; letter-spacing: -1.5px !important; margin: 0px !important; line-height: 1 !important; color: #00E5FF !important; }
+        .brand-icon { font-size: 62px !important; line-height: 1 !important; display: inline-block !important; background: linear-gradient(135deg, #FF9100 0%, #FF3D00 100%) !important; -webkit-background-clip: text !important; -webkit-text-fill-color: transparent !important; }
     </style>
-
     <div class="brand-container">
         <h1 class="brand-text">Finflow</h1>
         <span class="brand-icon">⚡</span>
@@ -492,32 +468,33 @@ if pagina_selecionada in ["💸 Controle de Despesas", "💰 Gestão de Receitas
 if pagina_selecionada == "💸 Controle de Despesas":
     # ----------------- PÁGINA DE DESPESAS -----------------
     
-    # Metas e Limite de Gastos (Barra de Metas Fina e Elegante)
     # Metas e Limite de Gastos (Barra de Metas Fina, Dinâmica e Elegante baseada no comprometimento da receita)
     st.markdown(f"### 🎯 Metas do Mês ({mes_filtro})")
     
-    porcentagem_calculada = (total_gastos / renda_atual) * 100 if renda_atual > 0 else 100.0
-    porcentagem_barra = min(porcentagem_calculada, 100.0)
+    porcentagem = (total_gastos / renda_atual) * 100 if renda_atual > 0 else 100.0
+    porcentagem_barra = min(porcentagem, 100.0)
     
-    if porcentagem_calculada < 50:
-        bar_color = "#00D1B2"  # Verde Neon / Ciano
-        status_msg = f"✅ **Excelente!** Nível de comprometimento saudável ({porcentagem_calculada:.1f}% da receita utilizada)."
+    # 2. Lógica de Cores da Barra (Defina antes do HTML)
+    if porcentagem < 50:
+        bar_color = "#00D1B2" # Verde Neon
+        status_msg = f"✅ **Excelente!** Nível de comprometimento saudável ({porcentagem:.1f}% da receita utilizada)."
         status_func = st.success
-    elif porcentagem_calculada < 85:
-        bar_color = "#F39C12"  # Laranja / Amarelo
-        status_msg = f"⚠️ **Alerta moderado.** Você comprometeu {porcentagem_calculada:.1f}% da sua receita (R$ {total_gastos:,.2f} de R$ {renda_atual:,.2f}). Recomenda-se cautela com novos gastos."
+    elif porcentagem < 85:
+        bar_color = "#F39C12" # Laranja
+        status_msg = f"⚠️ **Alerta moderado.** Você comprometeu {porcentagem:.1f}% da sua receita (R$ {total_gastos:,.2f} de R$ {renda_atual:,.2f}). Recomenda-se cautela com novos gastos."
         status_func = st.warning
     else:
-        bar_color = "#E74C3C"  # Vermelho
-        status_msg = f"🚨 **Receita altamente comprometida!** Suas despesas excederam ou atingiram o limite crítico (R$ {total_gastos:,.2f} de R$ {renda_atual:,.2f}, totalizando {porcentagem_calculada:.1f}% da receita utilizada)."
+        bar_color = "#E74C3C" # Vermelho
+        status_msg = f"🚨 **Receita altamente comprometida!** Suas despesas excederam ou atingiram o limite crítico (R$ {total_gastos:,.2f} de R$ {renda_atual:,.2f}, totalizando {porcentagem:.1f}% da receita utilizada)."
         status_func = st.error
 
+    # 3. Renderização da Barra Corrigida (Forçando a cor visível)
     st.markdown(f'''
-        <div style="width: 100%; background-color: #1A1F2C; border-radius: 8px; height: 12px; margin-top: 10px; border: 1px solid #2D3748;">
-            <div style="background-color: {bar_color} !important; width: {porcentagem_barra}% !important; height: 100%; border-radius: 6px; transition: width 0.5s ease-in-out;"></div>
+        <div style="width: 100%; background-color: #1A1F2C; border-radius: 8px; height: 16px; margin-top: 10px; border: 1px solid #2D3748; overflow: hidden;">
+            <div style="background: {bar_color} !important; background-color: {bar_color} !important; width: {porcentagem_barra}% !important; height: 100%; border-radius: 6px; transition: width 0.5s ease-in-out;"></div>
         </div>
         <p style="text-align: right; color: #A0AEC0; font-size: 13px; margin-top: 5px;">
-            Você já comprometeu <strong>{porcentagem_calculada:.1f}%</strong> da sua receita disponível (R$ {total_gastos:,.2f} de R$ {renda_atual:,.2f}).
+            Você já comprometeu <strong>{porcentagem:.1f}%</strong> da sua receita disponível (R$ {total_gastos:,.2f} de R$ {renda_atual:,.2f}).
         </p>
     ''', unsafe_allow_html=True)
     
