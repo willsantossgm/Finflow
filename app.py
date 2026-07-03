@@ -11,7 +11,7 @@ import requests
 EMAIL_REGEX = re.compile(r"^[^@\s]+@[^@\s]+\.[^@\s]+$")
 
 # Importando a classe do nosso backend
-from backend.financas import GerenciadorFinancas
+from backend.financas import GerenciadorFinancas, supabase
 
 # Configuração da página do Streamlit
 st.set_page_config(
@@ -155,34 +155,18 @@ st.markdown("""
 ARQUIVO_DADOS = "dados_financeiros.json"
 ARQUIVO_CONFIG = "config_financas.json"
 
-# Helper functions para Autenticação via Supabase Auth
+# Helper functions para Autenticação via Supabase Auth usando o SDK Oficial
 def supabase_login(email, password):
-    url = "https://ojiutbtyaxmpwstgnmnn.supabase.co/auth/v1/token?grant_type=password"
-    headers = {
-        "apikey": "sb_publishable_c-OH1QCwqmsWCmDj9rMq-w_eaqTJgDQ",
-        "Authorization": "Bearer sb_publishable_c-OH1QCwqmsWCmDj9rMq-w_eaqTJgDQ",
-        "Content-Type": "application/json"
-    }
-    payload = {"email": email, "password": password}
     try:
-        response = requests.post(url, headers=headers, json=payload)
-        return response
-    except Exception:
-        return None
+        return supabase.auth.sign_in_with_password({"email": email, "password": password})
+    except Exception as e:
+        return e
 
 def supabase_signup(email, password):
-    url = "https://ojiutbtyaxmpwstgnmnn.supabase.co/auth/v1/signup"
-    headers = {
-        "apikey": "sb_publishable_c-OH1QCwqmsWCmDj9rMq-w_eaqTJgDQ",
-        "Authorization": "Bearer sb_publishable_c-OH1QCwqmsWCmDj9rMq-w_eaqTJgDQ",
-        "Content-Type": "application/json"
-    }
-    payload = {"email": email, "password": password}
     try:
-        response = requests.post(url, headers=headers, json=payload)
-        return response
-    except Exception:
-        return None
+        return supabase.auth.sign_up({"email": email, "password": password})
+    except Exception as e:
+        return e
 
 # ----------------- TELA DE AUTENTICAÇÃO CLERK / SUPABASE RLS -----------------
 if "authenticated" not in st.session_state:
@@ -292,24 +276,19 @@ if not st.session_state.authenticated:
                 if not EMAIL_REGEX.match(email_clean):
                     st.error("Por favor, digite um formato de e-mail válido (ex: nome@provedor.com).")
                 else:
-                    with st.spinner("Conectando ao Clerk..."):
+                    with st.spinner("Conectando ao Supabase..."):
                         res = supabase_login(email_clean, senha)
-                        if res is not None and res.status_code == 200:
-                            data = res.json()
+                        if res is not None and not isinstance(res, Exception) and res.session is not None:
                             st.session_state.authenticated = True
-                            st.session_state.clerk_user_id = data['user']['id']
+                            st.session_state.clerk_user_id = res.user.id
                             st.session_state.user_email = email_clean
-                            st.session_state.user_access_token = data.get("access_token")
+                            st.session_state.user_access_token = res.session.access_token
                             st.success("Autenticado com sucesso!")
                             st.rerun()
                         else:
                             error_detail = None
-                            if res is not None:
-                                try:
-                                    json_res = res.json()
-                                    error_detail = json_res.get("error_description") or json_res.get("message") or json_res.get("msg") or json_res.get("error")
-                                except Exception:
-                                    pass
+                            if isinstance(res, Exception):
+                                error_detail = getattr(res, "message", str(res))
                             if not error_detail:
                                 error_detail = "Senha incorreta ou e-mail inválido."
                             st.error(f"Erro no Login: {error_detail}")
@@ -324,18 +303,14 @@ if not st.session_state.authenticated:
                 elif len(senha) < 6:
                     st.error("A senha deve ter no mínimo 6 caracteres.")
                 else:
-                    with st.spinner("Cadastrando no Clerk..."):
+                    with st.spinner("Cadastrando no Supabase..."):
                         res = supabase_signup(email_clean, senha)
-                        if res is not None and res.status_code in [200, 201]:
+                        if res is not None and not isinstance(res, Exception) and res.user is not None:
                             st.success("Cadastro efetuado! Se necessário, verifique sua caixa de e-mail e faça login.")
                         else:
                             error_detail = None
-                            if res is not None:
-                                try:
-                                    json_res = res.json()
-                                    error_detail = json_res.get("message") or json_res.get("msg") or json_res.get("error_description") or json_res.get("error")
-                                except Exception:
-                                    pass
+                            if isinstance(res, Exception):
+                                error_detail = getattr(res, "message", str(res))
                             if not error_detail:
                                 error_detail = "E-mail inválido ou já registrado."
                             st.error(f"Erro no Cadastro: {error_detail}")

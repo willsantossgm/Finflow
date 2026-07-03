@@ -1,23 +1,28 @@
 import os
 import json
 import uuid
-import requests
 from dataclasses import dataclass, field
 from datetime import date
 from typing import Dict, List
+from supabase import create_client, Client
+
+# Inicialização do Cliente Oficial do Supabase
+SUPABASE_URL = "https://ojiutbtyaxmpwstgnmnn.supabase.co"
+SUPABASE_KEY = "sb_publishable_c-OH1QCwqmsWCmDj9rMq-w_eaqTJgDQ"
+supabase: Client = create_client(SUPABASE_URL, SUPABASE_KEY)
 
 
 @dataclass
 class Gasto:
     """
-    Representa um gasto individual.
+    Representa um gasto ou receita individual.
 
     Atributos:
         id (str): Identificador único do gasto (gerado automaticamente via UUID4).
-        descricao (str): Descrição do gasto (ex: 'Supermercado', 'Gasolina').
-        valor (float): Valor monetário do gasto.
-        categoria (str): Categoria do gasto (ex: 'Alimentação', 'Transporte').
-        data (date): Data em que o gasto foi realizado.
+        descricao (str): Descrição do lançamento (ex: 'Supermercado', 'Salário').
+        valor (float): Valor monetário.
+        categoria (str): Categoria do lançamento (ex: 'Alimentação', 'Receita').
+        data (date): Data em que o lançamento foi realizado.
     """
     descricao: str
     valor: float
@@ -29,38 +34,29 @@ class Gasto:
 class GerenciadorFinancas:
     """
     Gerencia uma lista de gastos pessoais integrada ao Supabase, isolando os dados
-    de cada usuário utilizando o identificador do Clerk.
+    de cada usuário utilizando o identificador UUID do Supabase.
     """
 
     def __init__(self, user_id: str = None, access_token: str = None):
         self.user_id = user_id
         self.access_token = access_token
         self.gastos: List[Gasto] = []
-        self.api_url = "https://ojiutbtyaxmpwstgnmnn.supabase.co/rest/v1/gastos"
-        
-        auth_token = access_token if access_token else "sb_publishable_c-OH1QCwqmsWCmDj9rMq-w_eaqTJgDQ"
-        self.headers = {
-            "apikey": "sb_publishable_c-OH1QCwqmsWCmDj9rMq-w_eaqTJgDQ",
-            "Authorization": f"Bearer {auth_token}",
-            "Content-Type": "application/json",
-            "Prefer": "return=representation"
-        }
 
     def adicionar_gasto(self, descricao: str, valor: float, categoria: str, data: date) -> Gasto:
         """
-        Cria e adiciona um novo gasto, salvando-o diretamente no Supabase se houver user_id.
+        Cria e adiciona um novo lançamento, salvando-o diretamente no Supabase se houver user_id.
 
         Args:
-            descricao (str): Descrição do gasto.
-            valor (float): Valor do gasto (deve ser maior que zero).
-            categoria (str): Categoria do gasto.
-            data (date): Data do gasto.
+            descricao (str): Descrição do lançamento.
+            valor (float): Valor do lançamento (deve ser maior que zero).
+            categoria (str): Categoria do lançamento (pode ser despesa ou 'Receita').
+            data (date): Data do lançamento.
 
         Returns:
             Gasto: O objeto Gasto criado e inserido.
         """
         if valor <= 0:
-            raise ValueError("O valor do gasto deve ser maior que zero.")
+            raise ValueError("O valor do lançamento deve ser maior que zero.")
 
         gasto = Gasto(descricao=descricao, valor=valor, categoria=categoria, data=data)
 
@@ -68,13 +64,13 @@ class GerenciadorFinancas:
             payload = {
                 "id": gasto.id,
                 "descricao": gasto.descricao,
-                "valor": gasto.valor,
+                "valor": float(gasto.valor),
                 "categoria": gasto.categoria,
                 "data": gasto.data.isoformat(),
                 "user_id": self.user_id
             }
             try:
-                requests.post(self.api_url, headers=self.headers, json=payload)
+                supabase.table("gastos").insert(payload).execute()
             except Exception:
                 pass
 
@@ -94,7 +90,7 @@ class GerenciadorFinancas:
         if renda_mensal < 0:
             raise ValueError("A renda mensal não pode ser negativa.")
 
-        total_gastos = sum(gasto.valor for gasto in self.gastos)
+        total_gastos = sum(gasto.valor for gasto in self.gastos if gasto.categoria != "Receita")
         return renda_mensal - total_gastos
 
     def agrupar_e_somar_por_categoria(self) -> Dict[str, float]:
@@ -106,8 +102,9 @@ class GerenciadorFinancas:
         """
         agrupado: Dict[str, float] = {}
         for gasto in self.gastos:
-            cat_normalizada = gasto.categoria.strip().capitalize()
-            agrupado[cat_normalizada] = agrupado.get(cat_normalizada, 0.0) + gasto.valor
+            if gasto.categoria != "Receita":
+                cat_normalizada = gasto.categoria.strip().capitalize()
+                agrupado[cat_normalizada] = agrupado.get(cat_normalizada, 0.0) + gasto.valor
         return agrupado
 
     def salvar_dados(self, caminho_arquivo: str = None) -> None:
@@ -133,27 +130,23 @@ class GerenciadorFinancas:
 
     def carregar_dados(self, caminho_arquivo: str = None) -> None:
         """
-        Carrega os gastos do Supabase filtrando pelo user_id do Clerk do usuário.
+        Carrega os lançamentos do Supabase filtrando pelo user_id do usuário logado.
         Se não estiver autenticado e houver arquivo local, carrega localmente.
         """
         if self.user_id:
             try:
-                url = f"{self.api_url}?user_id=eq.{self.user_id}"
-                response = requests.get(url, headers=self.headers)
-                if response.status_code == 200:
-                    dados = response.json()
-                    self.gastos = []
-                    for item in dados:
-                        gasto = Gasto(
-                            id=item["id"],
-                            descricao=item["descricao"],
-                            valor=float(item["valor"]),
-                            categoria=item["categoria"],
-                            data=date.fromisoformat(item["data"])
-                        )
-                        self.gastos.append(gasto)
-                else:
-                    self.gastos = []
+                response = supabase.table("gastos").select("*").eq("user_id", self.user_id).execute()
+                dados = response.data
+                self.gastos = []
+                for item in dados:
+                    gasto = Gasto(
+                        id=item["id"],
+                        descricao=item["descricao"],
+                        valor=float(item["valor"]),
+                        categoria=item["categoria"],
+                        data=date.fromisoformat(item["data"])
+                    )
+                    self.gastos.append(gasto)
             except Exception:
                 self.gastos = []
         elif caminho_arquivo and os.path.exists(caminho_arquivo):
@@ -175,18 +168,17 @@ class GerenciadorFinancas:
 
     def remover_gasto(self, id_gasto: str) -> bool:
         """
-        Remove um gasto do banco Supabase e da memória local.
+        Remove um lançamento do banco Supabase e da memória local.
 
         Args:
-            id_gasto (str): O ID único do gasto a ser removido.
+            id_gasto (str): O ID único do lançamento a ser removido.
 
         Returns:
-            bool: True se o gasto foi removido da memória local.
+            bool: True se o lançamento foi removido com sucesso.
         """
         if self.user_id:
             try:
-                url = f"{self.api_url}?id=eq.{id_gasto}&user_id=eq.{self.user_id}"
-                requests.delete(url, headers=self.headers)
+                supabase.table("gastos").delete().eq("id", id_gasto).eq("user_id", self.user_id).execute()
             except Exception:
                 pass
 
@@ -197,7 +189,7 @@ class GerenciadorFinancas:
     def obter_meses_disponiveis(self) -> List[str]:
         """
         Retorna uma lista ordenada de strings 'MM/AAAA' correspondentes aos meses
-        em que existem gastos cadastrados.
+        em que existem lançamentos cadastrados.
         """
         meses = set()
         hoje = date.today()
@@ -215,7 +207,7 @@ class GerenciadorFinancas:
 
     def filtrar_por_mes_ano(self, mes_ano_str: str) -> List[Gasto]:
         """
-        Retorna uma lista de gastos filtrada pela string 'MM/AAAA'.
+        Retorna uma lista de lançamentos filtrada pela string 'MM/AAAA'.
         """
         filtrados = []
         for g in self.gastos:
@@ -225,7 +217,7 @@ class GerenciadorFinancas:
 
     def agrupar_por_categoria_ano(self, ano: int) -> Dict[str, float]:
         """
-        Filtra todos os gastos pelo ano selecionado e os agrupa somando por categoria.
+        Filtra todos os lançamentos pelo ano selecionado e os agrupa somando por categoria.
         """
         agrupado: Dict[str, float] = {}
         for g in self.gastos:
@@ -235,8 +227,7 @@ class GerenciadorFinancas:
         return agrupado
 
 
-# Demonstração de uso do módulo
 if __name__ == "__main__":
-    print("--- Inicializando Gerenciador de Finanças (Supabase SaaS Mode) ---")
+    print("--- Inicializando Gerenciador de Finanças (Supabase SDK Mode) ---")
     gerenciador = GerenciadorFinancas(user_id="demo_clerk_id")
     print("Objeto configurado com sucesso!")
