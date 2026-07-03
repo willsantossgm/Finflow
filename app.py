@@ -193,17 +193,94 @@ if "user_email" not in st.session_state:
     st.session_state.user_email = None
 
 if not st.session_state.authenticated:
-    # Cabeçalho da página de login estilo elite
     st.markdown("""
-        <div class="header-elite">
-            <h1 class="header-title">Fin<span>flow</span> ⚡</h1>
-            <div class="header-subtitle">Gestão Inteligente de Capital • Painel Premium • Identidade Segura via Clerk</div>
-        </div>
+        <style>
+            /* Ocultar barra lateral na tela de login */
+            [data-testid="stSidebar"] {
+                display: none !important;
+            }
+            
+            /* Limitar tamanho do container e centralizar na tela */
+            div.block-container {
+                max-width: 450px !important;
+                padding: 3rem 2.5rem !important;
+                background-color: #1A1F2C !important;
+                border: 1px solid #2D3748 !important;
+                border-radius: 16px !important;
+                box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5) !important;
+                margin-top: 8vh !important;
+            }
+            
+            /* Forçar botões de auth a terem largura total (100%) e cor Neon Teal */
+            div.stButton > button {
+                width: 100% !important;
+                background-color: #115e59 !important;
+                color: white !important;
+                border: 1px solid #00D1B2 !important;
+                border-radius: 8px !important;
+                padding: 0.6rem !important;
+                font-family: 'Inter', sans-serif;
+                font-weight: 600 !important;
+                transition: all 0.3s ease !important;
+            }
+            div.stButton > button:hover {
+                background-color: #00D1B2 !important;
+                color: #1A1F2C !important;
+                box-shadow: 0 0 15px rgba(0, 209, 178, 0.6) !important;
+                transform: translateY(-2px) !important;
+            }
+            
+            /* Logo estilo definitivo centralizado */
+            .auth-logo-container {
+                display: flex !important;
+                justify-content: center !important;
+                align-items: center !important;
+                gap: 12px !important;
+                margin-bottom: 5px !important;
+            }
+            .auth-logo-text {
+                font-family: "Inter", sans-serif !important;
+                font-size: 52px !important;
+                font-weight: 300 !important;
+                letter-spacing: -1.5px !important;
+                margin: 0px !important;
+                line-height: 1 !important;
+                color: #00E5FF !important;
+            }
+            .auth-logo-icon {
+                font-size: 46px !important;
+                line-height: 1 !important;
+                display: inline-block !important;
+                background: linear-gradient(135deg, #FF9100 0%, #FF3D00 100%) !important;
+                -webkit-background-clip: text !important;
+                -webkit-text-fill-color: transparent !important;
+            }
+            .auth-subtitle {
+                font-family: "Inter", sans-serif !important;
+                font-size: 13px !important;
+                color: #A0AEC0 !important;
+                text-align: center !important;
+                margin-bottom: 2rem !important;
+                opacity: 0.8 !important;
+                line-height: 1.4 !important;
+            }
+        </style>
     """, unsafe_allow_html=True)
-    
-    st.markdown("<div style='max-width: 500px; margin: 0 auto; padding: 2rem; background-color: #1e293b; border-radius: 12px; border: 1px solid #334155;'>", unsafe_allow_html=True)
-    
+
     auth_option = st.radio("Selecione uma opção:", ["Entrar (Login)", "Registrar-se (Cadastro)"], horizontal=True)
+    
+    if auth_option == "Entrar (Login)":
+        subtitle_text = "Seja bem-vindo de volta! Entre com suas credenciais."
+    else:
+        subtitle_text = "Crie sua nova conta para começar a gerenciar seu capital."
+        
+    st.markdown(f"""
+        <div class="auth-logo-container">
+            <h1 class="auth-logo-text">Finflow</h1>
+            <span class="auth-logo-icon">⚡</span>
+        </div>
+        <div class="auth-subtitle">{subtitle_text}</div>
+    """, unsafe_allow_html=True)
     
     email = st.text_input("E-mail do Clerk", placeholder="nome@provedor.com")
     senha = st.text_input("Senha", type="password", placeholder="Digite sua senha")
@@ -265,7 +342,6 @@ if not st.session_state.authenticated:
             else:
                 st.error("Preencha todos os campos!")
                 
-    st.markdown("</div>", unsafe_allow_html=True)
     st.stop() # Bloqueia toda a renderização abaixo até que faça login!
 
 # ----------------- INICIALIZAÇÃO DO GERENCIADOR AUTENTICADO -----------------
