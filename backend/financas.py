@@ -37,23 +37,15 @@ class GerenciadorFinancas:
     de cada usuário utilizando o identificador UUID do Supabase.
     """
 
-    def __init__(self, user_id: str = None, access_token: str = None):
+    def __init__(self, user_id: str = None, access_token: str = None, supabase_client: Client = None):
         self.user_id = user_id
         self.access_token = access_token
+        self.supabase = supabase_client if supabase_client is not None else supabase
         self.gastos: List[Gasto] = []
 
     def adicionar_gasto(self, descricao: str, valor: float, categoria: str, data: date) -> Gasto:
         """
         Cria e adiciona um novo lançamento, salvando-o diretamente no Supabase se houver user_id.
-
-        Args:
-            descricao (str): Descrição do lançamento.
-            valor (float): Valor do lançamento (deve ser maior que zero).
-            categoria (str): Categoria do lançamento (pode ser despesa ou 'Receita').
-            data (date): Data do lançamento.
-
-        Returns:
-            Gasto: O objeto Gasto criado e inserido.
         """
         if valor <= 0:
             raise ValueError("O valor do lançamento deve ser maior que zero.")
@@ -61,31 +53,36 @@ class GerenciadorFinancas:
         gasto = Gasto(descricao=descricao, valor=valor, categoria=categoria, data=data)
 
         if self.user_id:
-            payload = {
-                "id": gasto.id,
-                "descricao": gasto.descricao,
-                "valor": float(gasto.valor),
-                "categoria": gasto.categoria,
-                "data": gasto.data.isoformat(),
-                "user_id": self.user_id
-            }
-            try:
-                supabase.table("gastos").insert(payload).execute()
-            except Exception:
-                pass
+            self.salvar_gasto(
+                descricao=gasto.descricao,
+                valor=gasto.valor,
+                categoria=gasto.categoria,
+                data_lancamento=gasto.data,
+                user_id=self.user_id
+            )
 
         self.gastos.append(gasto)
         return gasto
 
+    def salvar_gasto(self, descricao, valor, categoria, data_lancamento, user_id):
+        dados = {
+            "descricao": descricao,
+            "valor": float(valor),
+            "categoria": categoria,
+            "data": str(data_lancamento),
+            "user_id": str(user_id) # Forçar string pura do UUID
+        }
+        try:
+            # O .execute() garante o envio imediato e persistente para o banco
+            resposta = self.supabase.table("gastos").insert(dados).execute()
+            return resposta
+        except Exception as e:
+            print(f"Erro ao salvar no Supabase: {e}")
+            return None
+
     def calcular_saldo_restante(self, renda_mensal: float) -> float:
         """
         Calcula o saldo restante subtraindo o total acumulado de gastos da renda mensal.
-
-        Args:
-            renda_mensal (float): A renda total mensal disponível.
-
-        Returns:
-            float: O saldo restante após subtrair todos os gastos cadastrados.
         """
         if renda_mensal < 0:
             raise ValueError("A renda mensal não pode ser negativa.")
@@ -96,9 +93,6 @@ class GerenciadorFinancas:
     def agrupar_e_somar_por_categoria(self) -> Dict[str, float]:
         """
         Agrupa todos os gastos cadastrados por categoria e soma seus valores.
-
-        Returns:
-            Dict[str, float]: Um dicionário com as categorias como chaves e a soma dos gastos como valores.
         """
         agrupado: Dict[str, float] = {}
         for gasto in self.gastos:
@@ -128,57 +122,34 @@ class GerenciadorFinancas:
             except Exception:
                 pass
 
-    def carregar_dados(self, caminho_arquivo: str = None) -> None:
+    def carregar_dados(self, user_id) -> None:
         """
         Carrega os lançamentos do Supabase filtrando pelo user_id do usuário logado.
-        Se não estiver autenticado e houver arquivo local, carrega localmente.
         """
-        if self.user_id:
-            try:
-                response = supabase.table("gastos").select("*").eq("user_id", self.user_id).execute()
-                dados = response.data
-                self.gastos = []
-                for item in dados:
-                    gasto = Gasto(
-                        id=item["id"],
-                        descricao=item["descricao"],
-                        valor=float(item["valor"]),
-                        categoria=item["categoria"],
-                        data=date.fromisoformat(item["data"])
-                    )
-                    self.gastos.append(gasto)
-            except Exception:
-                self.gastos = []
-        elif caminho_arquivo and os.path.exists(caminho_arquivo):
-            try:
-                with open(caminho_arquivo, "r", encoding="utf-8") as f:
-                    dados = json.load(f)
-                self.gastos = []
-                for item in dados:
-                    gasto = Gasto(
-                        id=item["id"],
-                        descricao=item["descricao"],
-                        valor=item["valor"],
-                        categoria=item["categoria"],
-                        data=date.fromisoformat(item["data"])
-                    )
-                    self.gastos.append(gasto)
-            except Exception:
-                self.gastos = []
+        try:
+            resposta = self.supabase.table("gastos").select("*").eq("user_id", str(user_id)).execute()
+            dados = resposta.data if resposta.data else []
+            self.gastos = []
+            for item in dados:
+                gasto = Gasto(
+                    id=item["id"],
+                    descricao=item["descricao"],
+                    valor=float(item["valor"]),
+                    categoria=item["categoria"],
+                    data=date.fromisoformat(item["data"])
+                )
+                self.gastos.append(gasto)
+        except Exception as e:
+            print(f"Erro ao ler do Supabase: {e}")
+            self.gastos = []
 
     def remover_gasto(self, id_gasto: str) -> bool:
         """
         Remove um lançamento do banco Supabase e da memória local.
-
-        Args:
-            id_gasto (str): O ID único do lançamento a ser removido.
-
-        Returns:
-            bool: True se o lançamento foi removido com sucesso.
         """
         if self.user_id:
             try:
-                supabase.table("gastos").delete().eq("id", id_gasto).eq("user_id", self.user_id).execute()
+                self.supabase.table("gastos").delete().eq("id", id_gasto).eq("user_id", self.user_id).execute()
             except Exception:
                 pass
 

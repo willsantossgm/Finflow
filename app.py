@@ -169,6 +169,11 @@ def supabase_signup(email, password):
         return e
 
 # ----------------- TELA DE AUTENTICAÇÃO CLERK / SUPABASE RLS -----------------
+if "supabase" not in st.session_state:
+    from backend.financas import SUPABASE_URL, SUPABASE_KEY, create_client
+    st.session_state.supabase = create_client(SUPABASE_URL, SUPABASE_KEY)
+supabase = st.session_state.supabase
+
 if "authenticated" not in st.session_state:
     st.session_state.authenticated = False
 if "clerk_user_id" not in st.session_state:
@@ -324,10 +329,11 @@ if not st.session_state.authenticated:
 if "gerenciador" not in st.session_state or getattr(st.session_state.gerenciador, "user_id", None) != st.session_state.clerk_user_id or not hasattr(st.session_state.gerenciador, "agrupar_por_categoria_ano"):
     st.session_state.gerenciador = GerenciadorFinancas(
         user_id=st.session_state.clerk_user_id,
-        access_token=st.session_state.get("user_access_token")
+        access_token=st.session_state.get("user_access_token"),
+        supabase_client=st.session_state.supabase
     )
-    # Tenta carregar dados do Supabase
-    st.session_state.gerenciador.carregar_dados(ARQUIVO_DADOS)
+    # Tenta carregar dados do Supabase para o usuário logado de forma explícita
+    st.session_state.gerenciador.carregar_dados(st.session_state.clerk_user_id)
 
 # Carregar configurações locais de Renda e Categorias
 if "renda_mensal" not in st.session_state:
