@@ -471,35 +471,56 @@ if pagina_selecionada == "💸 Controle de Despesas":
     # Metas e Limite de Gastos (Barra de Metas Fina, Dinâmica e Elegante baseada no comprometimento da receita)
     st.markdown(f"### 🎯 Metas do Mês ({mes_filtro})")
     
-    porcentagem = (total_gastos / renda_atual) * 100 if renda_atual > 0 else 100.0
-    porcentagem_barra = min(porcentagem, 100.0)
-    
-    # 2. Lógica de Cores da Barra (Defina antes do HTML)
-    if porcentagem < 50:
-        bar_color = "#00D1B2" # Verde Neon
-        status_msg = f"✅ **Excelente!** Nível de comprometimento saudável ({porcentagem:.1f}% da receita utilizada)."
-        status_func = st.success
-    elif porcentagem < 85:
-        bar_color = "#F39C12" # Laranja
-        status_msg = f"⚠️ **Alerta moderado.** Você comprometeu {porcentagem:.1f}% da sua receita (R$ {total_gastos:,.2f} de R$ {renda_atual:,.2f}). Recomenda-se cautela com novos gastos."
-        status_func = st.warning
+    # 1. Regra para conta totalmente zerada ou sem lançamentos no mês
+    if renda_atual == 0 and total_gastos == 0:
+        porcentagem = 0.0
+        porcentagem_barra = 0.0
+        bar_color = "#2D3748" # Cor neutra
+        st.markdown(f'''
+            <div style="width: 100%; background-color: #1A1F2C; border-radius: 8px; height: 16px; margin-top: 10px; border: 1px solid #2D3748; overflow: hidden;">
+                <div style="background: {bar_color} !important; background-color: {bar_color} !important; width: {porcentagem_barra}% !important; height: 100%; border-radius: 6px; transition: width 0.5s ease-in-out;"></div>
+            </div>
+            <p style="text-align: right; color: #A0AEC0; font-size: 13px; margin-top: 5px;">
+                Você comprometeu <strong>0.0%</strong> da sua receita disponível.
+            </p>
+        ''', unsafe_allow_html=True)
+        st.info("ℹ️ Nenhum lançamento registrado para este mês ainda. Comece adicionando seus ganhos e gastos!")
+        st.markdown("---")
     else:
-        bar_color = "#E74C3C" # Vermelho
-        status_msg = f"🚨 **Receita altamente comprometida!** Suas despesas excederam ou atingiram o limite crítico (R$ {total_gastos:,.2f} de R$ {renda_atual:,.2f}, totalizando {porcentagem:.1f}% da receita utilizada)."
-        status_func = st.error
+        # Caso clássico com lançamentos
+        if renda_atual == 0 and total_gastos > 0:
+            porcentagem = 100.0
+        else:
+            porcentagem = (total_gastos / renda_atual) * 100
+            
+        porcentagem_barra = min(porcentagem, 100.0)
+        
+        # 2. Lógica de Cores da Barra (Defina antes do HTML)
+        if porcentagem < 50:
+            bar_color = "#00D1B2" # Verde Neon
+            status_msg = f"✅ **Excelente!** Nível de comprometimento saudável ({porcentagem:.1f}% da receita utilizada)."
+            status_func = st.success
+        elif porcentagem < 85:
+            bar_color = "#F39C12" # Laranja
+            status_msg = f"⚠️ **Alerta moderado.** Você comprometeu {porcentagem:.1f}% da sua receita (R$ {total_gastos:,.2f} de R$ {renda_atual:,.2f}). Recomenda-se cautela com novos gastos."
+            status_func = st.warning
+        else:
+            bar_color = "#E74C3C" # Vermelho
+            status_msg = f"🚨 **Receita altamente comprometida!** Suas despesas excederam ou atingiram o limite crítico (R$ {total_gastos:,.2f} de R$ {renda_atual:,.2f}, totalizando {porcentagem:.1f}% da receita utilizada)."
+            status_func = st.error
 
-    # 3. Renderização da Barra Corrigida (Forçando a cor visível)
-    st.markdown(f'''
-        <div style="width: 100%; background-color: #1A1F2C; border-radius: 8px; height: 16px; margin-top: 10px; border: 1px solid #2D3748; overflow: hidden;">
-            <div style="background: {bar_color} !important; background-color: {bar_color} !important; width: {porcentagem_barra}% !important; height: 100%; border-radius: 6px; transition: width 0.5s ease-in-out;"></div>
-        </div>
-        <p style="text-align: right; color: #A0AEC0; font-size: 13px; margin-top: 5px;">
-            Você já comprometeu <strong>{porcentagem:.1f}%</strong> da sua receita disponível (R$ {total_gastos:,.2f} de R$ {renda_atual:,.2f}).
-        </p>
-    ''', unsafe_allow_html=True)
-    
-    status_func(status_msg)
-    st.markdown("---")
+        # 3. Renderização da Barra Corrigida (Forçando a cor visível)
+        st.markdown(f'''
+            <div style="width: 100%; background-color: #1A1F2C; border-radius: 8px; height: 16px; margin-top: 10px; border: 1px solid #2D3748; overflow: hidden;">
+                <div style="background: {bar_color} !important; background-color: {bar_color} !important; width: {porcentagem_barra}% !important; height: 100%; border-radius: 6px; transition: width 0.5s ease-in-out;"></div>
+            </div>
+            <p style="text-align: right; color: #A0AEC0; font-size: 13px; margin-top: 5px;">
+                Você já comprometeu <strong>{porcentagem:.1f}%</strong> da sua receita disponível (R$ {total_gastos:,.2f} de R$ {renda_atual:,.2f}).
+            </p>
+        ''', unsafe_allow_html=True)
+        
+        status_func(status_msg)
+        st.markdown("---")
 
     col_form, col_list = st.columns([1, 2])
 
