@@ -477,8 +477,27 @@ if pagina_selecionada == "💸 Controle de Despesas":
         porcentagem_barra = 0.0
         bar_color = "#2D3748" # Cor neutra
         st.markdown(f'''
-            <div style="width: 100%; background-color: #1A1F2C; border-radius: 8px; height: 16px; margin-top: 10px; border: 1px solid #2D3748; overflow: hidden;">
-                <div style="background: {bar_color} !important; background-color: {bar_color} !important; width: {porcentagem_barra}% !important; height: 100%; border-radius: 6px; transition: width 0.5s ease-in-out;"></div>
+            <div style="
+                width: 100% !important; 
+                background-color: #111622 !important; 
+                border: 1px solid #2D3748 !important; 
+                border-radius: 50px !important; 
+                height: 18px !important; 
+                margin-top: 12px !important; 
+                margin-bottom: 8px !important;
+                overflow: hidden !important;
+                display: block !important;
+            ">
+                <div style="
+                    width: {porcentagem_barra}% !important; 
+                    height: 100% !important; 
+                    background: {bar_color} !important; 
+                    background-color: {bar_color} !important; 
+                    border-radius: 50px !important;
+                    box-shadow: 0px 0px 10px {bar_color}80 !important; /* Efeito Glow sutil */
+                    transition: width 0.6s ease-in-out !important;
+                    display: block !important;
+                "></div>
             </div>
             <p style="text-align: right; color: #A0AEC0; font-size: 13px; margin-top: 5px;">
                 Você comprometeu <strong>0.0%</strong> da sua receita disponível.
@@ -511,8 +530,27 @@ if pagina_selecionada == "💸 Controle de Despesas":
 
         # 3. Renderização da Barra Corrigida (Forçando a cor visível)
         st.markdown(f'''
-            <div style="width: 100%; background-color: #1A1F2C; border-radius: 8px; height: 16px; margin-top: 10px; border: 1px solid #2D3748; overflow: hidden;">
-                <div style="background: {bar_color} !important; background-color: {bar_color} !important; width: {porcentagem_barra}% !important; height: 100%; border-radius: 6px; transition: width 0.5s ease-in-out;"></div>
+            <div style="
+                width: 100% !important; 
+                background-color: #111622 !important; 
+                border: 1px solid #2D3748 !important; 
+                border-radius: 50px !important; 
+                height: 18px !important; 
+                margin-top: 12px !important; 
+                margin-bottom: 8px !important;
+                overflow: hidden !important;
+                display: block !important;
+            ">
+                <div style="
+                    width: {porcentagem_barra}% !important; 
+                    height: 100% !important; 
+                    background: {bar_color} !important; 
+                    background-color: {bar_color} !important; 
+                    border-radius: 50px !important;
+                    box-shadow: 0px 0px 10px {bar_color}80 !important; /* Efeito Glow sutil */
+                    transition: width 0.6s ease-in-out !important;
+                    display: block !important;
+                "></div>
             </div>
             <p style="text-align: right; color: #A0AEC0; font-size: 13px; margin-top: 5px;">
                 Você já comprometeu <strong>{porcentagem:.1f}%</strong> da sua receita disponível (R$ {total_gastos:,.2f} de R$ {renda_atual:,.2f}).
