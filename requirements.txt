@@ -3,3 +3,4 @@ pandas
 altair
 requests
 clerk-backend-api
+supabase>=2.4.0
