@@ -87,6 +87,7 @@ def supabase_login(email, password):
     url = "https://ojiutbtyaxmpwstgnmnn.supabase.co/auth/v1/token?grant_type=password"
     headers = {
         "apikey": "sb_publishable_c-OH1QCwqmsWCmDj9rMq-w_eaqTJgDQ",
+        "Authorization": "Bearer sb_publishable_c-OH1QCwqmsWCmDj9rMq-w_eaqTJgDQ",
         "Content-Type": "application/json"
     }
     payload = {"email": email, "password": password}
@@ -100,6 +101,7 @@ def supabase_signup(email, password):
     url = "https://ojiutbtyaxmpwstgnmnn.supabase.co/auth/v1/signup"
     headers = {
         "apikey": "sb_publishable_c-OH1QCwqmsWCmDj9rMq-w_eaqTJgDQ",
+        "Authorization": "Bearer sb_publishable_c-OH1QCwqmsWCmDj9rMq-w_eaqTJgDQ",
         "Content-Type": "application/json"
     }
     payload = {"email": email, "password": password}
@@ -146,7 +148,15 @@ if not st.session_state.authenticated:
                         st.success("Autenticado com sucesso!")
                         st.rerun()
                     else:
-                        error_detail = res.json().get("error_description", "Senha incorreta ou e-mail inválido.") if res is not None else "Erro de rede ao conectar à nuvem."
+                        error_detail = None
+                        if res is not None:
+                            try:
+                                json_res = res.json()
+                                error_detail = json_res.get("error_description") or json_res.get("message") or json_res.get("msg") or json_res.get("error")
+                            except Exception:
+                                pass
+                        if not error_detail:
+                            error_detail = "Senha incorreta ou e-mail inválido."
                         st.error(f"Erro no Login: {error_detail}")
             else:
                 st.error("Preencha todos os campos!")
@@ -161,7 +171,15 @@ if not st.session_state.authenticated:
                         if res is not None and res.status_code in [200, 201]:
                             st.success("Cadastro efetuado! Se necessário, verifique sua caixa de e-mail e faça login.")
                         else:
-                            error_detail = res.json().get("message", "E-mail inválido ou já registrado.") if res is not None else "Erro de rede ao conectar à nuvem."
+                            error_detail = None
+                            if res is not None:
+                                try:
+                                    json_res = res.json()
+                                    error_detail = json_res.get("message") or json_res.get("msg") or json_res.get("error_description") or json_res.get("error")
+                                except Exception:
+                                    pass
+                            if not error_detail:
+                                error_detail = "E-mail inválido ou já registrado."
                             st.error(f"Erro no Cadastro: {error_detail}")
             else:
                 st.error("Preencha todos os campos!")
